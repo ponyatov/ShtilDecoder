@@ -60,7 +60,7 @@ class Frame:
         self.CRC_H=dat[30]
         self.CRC_L=dat[31]
     def __str__(self):
-        T='\n%s\nканал %i кадр @%.4X\n%s'%('='*60,self.ch,self.addr,'-'*60)
+        T='\n%s\nканал %i кадр #%.4X\n%s'%('='*60,self.ch,self.addr,'-'*60)
         T+=dump(self.dat)+'-'*60
         T+='\nсигнатура:\t\t%s'%self.signature
         T+='\n№ блока:\t\t%s'%self.blockN
@@ -125,24 +125,24 @@ class DataDir:
         ' заполнение каналов данными '
         X={# разбитовка каналов
            #        0      1      2      3      4      5      6      7
-           self.K1:[(1,1 ),(1,2 ),(1,3 ),(1,4 ),(1,5 ),(1,6 ),(1,7 ),(1,8 )],
-           self.K2:[(1,9 ),(1,10),(1,11),(1,12),(2,1 ),(2,2 ),(2,3 ),(2,4 )],
-           self.K3:[(2,5 ),(2,6 ),(2,7 ),(2,8 ),(2,9 ),(2,10),(2,11),(2,11)]
+           self.K1:[(1,8 ),(1,7 ),(1,6 ),(1,5 ),(1,4 ),(1,3 ),(1,2 ),(1,1 )],
+           self.K2:[(2,4 ),(2,3 ),(2,2 ),(2,1 ),(1,12),(1,11),(1,10),(1,9 )],
+           self.K3:[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
            }
         for r in range(self.RECS):
             for K in X:
-                K.append('%.2X'%int('%c%c%c%c%c%c%c%c'%(
-                    self.DAT[(X[K][0][0],X[K][0][1])][r],
-                    self.DAT[(X[K][1][0],X[K][1][1])][r],
-                    self.DAT[(X[K][2][0],X[K][2][1])][r],
-                    self.DAT[(X[K][3][0],X[K][3][1])][r],
-                    self.DAT[(X[K][4][0],X[K][4][1])][r],
-                    self.DAT[(X[K][5][0],X[K][5][1])][r],
-                    self.DAT[(X[K][6][0],X[K][6][1])][r],
-                    self.DAT[(X[K][7][0],X[K][7][1])][r],
+                K.append('%.2X'%int('%s%s%s%s%s%s%s%s'%(
+                     self.DAT[(X[K][0][0],X[K][0][1])][r],
+                     self.DAT[(X[K][1][0],X[K][1][1])][r],
+                     self.DAT[(X[K][2][0],X[K][2][1])][r],
+                     self.DAT[(X[K][3][0],X[K][3][1])][r],
+                     self.DAT[(X[K][4][0],X[K][4][1])][r],
+                     self.DAT[(X[K][5][0],X[K][5][1])][r],
+                     self.DAT[(X[K][6][0],X[K][6][1])][r],
+                     self.DAT[(X[K][7][0],X[K][7][1])][r],
                 ),2))
 
-for D in ['dat/1','dat/2','dat/3']:
+for D in ['dat/3']:#,'dat/1','dat/2']:
     DataDir(D)
     
 LOG.close()
