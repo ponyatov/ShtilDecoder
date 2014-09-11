@@ -59,6 +59,13 @@ class Frame:
         self.Temp=dat[26:29+1]
         self.CRC_H=dat[30]
         self.CRC_L=dat[31]
+        # проверка контрольной суммы
+        CS=0
+        for i in map(lambda x:int(x,0x10),dat)[:-2]:
+            CS+=i
+        CH,CL='%.2X'%(CS/0x100),'%.2X'%(CS%0x100)
+        self.Valid= (CH==self.CRC_H) and (CL==self.CRC_L)
+#         print 'CHECK',CH,self.CRC_H,CL,self.CRC_L,self.Valid
     def __str__(self):
         T='\n%s\nканал %i кадр #%.4X\n%s'%('='*60,self.ch,self.addr,'-'*60)
         T+=dump(self.dat)+'-'*60
@@ -72,6 +79,7 @@ class Frame:
         T+='\nТемпература:\t%s'%self.Temp
         T+='\nCRC_H:\t\t\t%s'%self.CRC_H
         T+='\nCLC_L:\t\t\t%s'%self.CRC_L
+        T+='\nвалидность:\t\t%s'%self.Valid
         return T+'\n'+'='*60     
     
 class DataDir:
