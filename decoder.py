@@ -1,74 +1,135 @@
 # -*- coding: cp1251 -*-
-# Декодер файлов Штиля №2
+# Декодер файлов Штыря №2
+######################################################
+
+# каталог с данными
+DATDIR='dat/3' 
+
+# маска имени файла
+DATFILEMASK = '%s/374ШИМП_%i (%i)(K).dat'
+
+CHBT={
+# разбитовка каналов: байт 76543210
+#        0      1      2      3      4      5      6      7
+'K1':[(1,8 ),(1,7 ),(1,6 ),(1,5 ),(1,4 ),(1,3 ),(1,2 ),(1,1 )],
+'K2':[(2,4 ),(2,3 ),(2,2 ),(2,1 ),(1,12),(1,11),(1,10),(1,9 )],
+'K3':[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
+}
+
+######################################################
 
 import os,sys,time,re
 
 # выходной файл лога
-LOG=open('log.log','w')
+sys.stdout=open('log.log','w')
 
-def dump(L):
-    '''
-    функция вывода дампа по 0x10 элементов    
-    '''
+print time.localtime()[:6],sys.argv
+print '\nDATDIR "%s"\n'%DATDIR
+print 'DATFILEMASK "%s"\n'%DATFILEMASK
+
+def dump(dat):
+    'функция вывода кекс-дампа'
     T=''
-    N=0
-    for i in L:
-        if not N%0x10: T+='\n%.4X\t'%N # каждые 0x10 элементов выводим адрес
-        N+=1
-        T+='%s '%i
-    return '%s\n'%T
-        
-class Channel:
-    '''
-    класс канала
-    '''
-    def __init__(self, id):
-        self.id=id
-        self.dat=[]
-    def __str__(self):
-        ' текстовое представление объекта '
-        T='\n%s\nКанал #%s длина %i байт\n%s'%('='*60,self.id,len(self),'-'*60)
-        T+=dump(self.dat[:0x20])+'...\n'+'='*60
-        return T
-    def append(self,item):
-        ' добавление элемента '
-        self.dat+=[item]
-    def __len__(self):
-        ' число элементов объекта '
-        return len(self.dat)
-    def __getitem__(self,index):
-        ' получение элемента '
-        return self.dat[index]
+    for addr in range(len(dat)):
+        if addr%0x10==0: T+='\n%.4X\t'%addr
+        T+='%.2X '%dat[addr]
+    return T
 
-class Frame:
-    '''
-    класс пакета
-    '''
-    def __init__(self,ch,addr,dat):
-        self.ch=ch
-        self.addr=addr
-        self.dat=dat
-        # декодирование
-        self.signature=dat[0:2+1]
-        self.blockN=dat[3]
-        self.time=dat[4:7+1]
-        self.BSKVU1=dat[8:11+1]
-        self.BSKVU2=dat[12:15+1]
-        self.DM1peak=dat[16:20+1]
-        self.DM2peak=dat[21:25+1]
-        self.Temp=dat[26:29+1]
-        self.CRC_H=dat[30]
-        self.CRC_L=dat[31]
-        # проверка контрольной суммы
-        CS=0
-        for i in map(lambda x:int(x,0x10),dat)[:-2]:
-            CS+=i
-        CH,CL='%.2X'%(CS/0x100),'%.2X'%(CS%0x100)
-        self.Valid= (CH==self.CRC_H) and (CL==self.CRC_L)
-#         print 'CHECK',CH,self.CRC_H,CL,self.CRC_L,self.Valid
+############################
+
+class Channel:
+    '1-битный канал'
+    def __init__(self,i,j):
+        # генерация имени .dat-файлов по маске
+        self.i=i; self.j=j
+        self.DatFileName = DATFILEMASK%(DATDIR,i,j)
+        # чтение файла
+        DatFile = open(self.DatFileName)
+        Records = DatFile.readlines()
+        DatFile.close()
+        # генерация списка битов
+        self.dat = map(lambda x:int(x.split()[1]),Records)
     def __str__(self):
-        T='\n%s\nканал %i кадр #%.4X\n%s'%('='*60,self.ch,self.addr,'-'*60)
-        T+=dump(self.dat)+'-'*60
+        return 'Канал %i:%i [%s] sz=%i'%(\
+            self.i,self.j,\
+            self.DatFileName,\
+            len(self))
+    def __len__(self): return len(self.dat)
+    def __getitem__(self,idx): return self.dat[idx]
+
+# загрузка каналов из файлов
+DAT={}
+for i in [1,2]:
+    for j in range(1,12+1):
+        DAT[(i,j)]=Channel(i,j)
+        print DAT[(i,j)] 
+
+############################
+
+class ByteStream:
+    'поток байтовых данных'
+    def __init__(self,ID,BT):
+        self.ID=ID
+        self.BT=BT
+        self.DAT=[]
+        self.SZ=len(DAT[(1,1)])
+        for i in range(self.SZ):
+            byte=0
+            for bit in range(8):
+                byte=byte*2+DAT[BT[bit]][i]
+            self.DAT+=[byte]
+        self.packindex()
+    def packindex(self):
+        'перестроение индекса пакетов'
+        self.INDEX=[]
+        for i in range(len(self.DAT)-31):
+            if self.DAT[i:i+2]==[0x55,0xAA]:
+                if self.isOkpacket(i):
+                    self.INDEX+=[i]
+    def isOkpacket(self,addr):
+        CH,CL=self.DAT[addr+30:addr+30+2]
+        return self.checksum(addr) == CH*0x100+CL
+    def checksum(self,addr):
+        'вычисление контрольной суммы пакета начинающегося с адреса addr'
+        return sum(self.DAT[addr:addr+29+1])
+    def __str__(self):
+        T='Поток %s: %s'%(self.ID,self.BT)
+#         T+=dump(self.DAT)
+        return T
+    def packages(self): return self.INDEX
+    def package(self,addr): return self.DAT[addr:addr+32]
+
+print
+K1=ByteStream('K1',CHBT['K1']) ; print K1
+K2=ByteStream('K2',CHBT['K2']) ; print K2
+K3=ByteStream('K3',CHBT['K3']) ; print K3
+
+############################
+
+class Package:
+    'пакет'
+    def __init__(self,ch,addr,block):
+        assert len(block)==32
+        self.CH=ch
+        self.ADDR=addr
+        self.DAT=block
+        # декодирование
+        self.signature=self.DAT[0:2+1]
+        self.blockN=self.DAT[3]
+        self.time=self.DAT[4:7+1]
+        self.BSKVU1=self.DAT[8:11+1]
+        self.BSKVU2=self.DAT[12:15+1]
+        self.DM1peak=self.DAT[16:20+1]
+        self.DM2peak=self.DAT[21:25+1]
+        self.Temp=self.DAT[26:29+1]
+        self.CRC_H=self.DAT[30]
+        self.CRC_L=self.DAT[31]
+    def checksum(self,addr): return sum(self.DAT[0,29+1])
+    def __str__(self):
+        HL='-'*55
+        T='Пакет %s@%.4X\n'%(self.CH,self.ADDR)+HL
+        T+=dump(self.DAT)
+        T+='\n'+HL
         T+='\nсигнатура:\t\t%s'%self.signature
         T+='\n№ блока:\t\t%s'%self.blockN
         T+='\nвремя Штыря:\t%s'%self.time
@@ -79,78 +140,10 @@ class Frame:
         T+='\nТемпература:\t%s'%self.Temp
         T+='\nCRC_H:\t\t\t%s'%self.CRC_H
         T+='\nCLC_L:\t\t\t%s'%self.CRC_L
-        T+='\nвалидность:\t\t%s'%self.Valid
-        return T+'\n'+'='*60     
-    
-class DataDir:
-    '''
-    генерация набора имен файлов и загрузка в словарь
-    выполняется в конструкторе при создании объекта
-    '''
-    # маска имени файла
-    DATFILEMASK = '%s/374ШИМП_%i (%i)(K).dat'
-    def __init__(self,D):
-        print >>LOG,self,D
-        # каналы
-        self.K1,self.K2,self.K3=Channel(1),Channel(2),Channel(3)
-        self.DATDIR=D
-        self.DAT={} # словарь
-        self.RECS = 0 # счетчик максимального числа строк в .dat файлах
-        self.LoadFromFiles()
-        self.FillData()
-        self.FindPackages()
-    def LoadFromFiles(self):
-        ' загрузка данных из файлов '
-        self.FILES={} # список длин файлов с данными в порядке загрузки
-        for i in [1,2]:
-            for j in range(1,12+1):
-                # генерация имени .dat-файла по маске
-                DatFileName=self.DATFILEMASK%(self.DATDIR,i,j)
-                # открываем файл
-                F=open(DatFileName) 
-                # читаем файл в виде списка строк
-                DATLIST=F.readlines()
-                self.FILES[DatFileName]=len(DATLIST)
-                # обновление максимума длины файлов
-                self.RECS=max(self.RECS,self.FILES[DatFileName])
-                print >>LOG,'%s: %i строк'%(DatFileName,self.FILES[DatFileName])
-                # применяя к списку лябда-функцию получающую 1ый столбец (бит)
-                # (нумерация в списках начинается с нуля)
-                # функция split([X]) делит строку по разделителю 
-                # и возвращает список
-                # split() делит по пробельным символам
-                self.DAT[(i,j)]=map(lambda x:x.split()[1],DATLIST)
-                # закрываем файл 
-                F.close()
-    def FindPackages(self):
-        ' сканирование на маркеры пакетов '
-        for K in [self.K1,self.K2,self.K3]:
-            print >>LOG,K
-            for i in range(len(K)-31):
-                if K[i:i+2]==['55','AA']:
-                    print >>LOG,Frame(1,i-1,K[i-1:i+31])
-    def FillData(self):
-        ' заполнение каналов данными '
-        X={# разбитовка каналов
-           #        0      1      2      3      4      5      6      7
-           self.K1:[(1,8 ),(1,7 ),(1,6 ),(1,5 ),(1,4 ),(1,3 ),(1,2 ),(1,1 )],
-           self.K2:[(2,4 ),(2,3 ),(2,2 ),(2,1 ),(1,12),(1,11),(1,10),(1,9 )],
-           self.K3:[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
-           }
-        for r in range(self.RECS):
-            for K in X:
-                K.append('%.2X'%int('%s%s%s%s%s%s%s%s'%(
-                     self.DAT[(X[K][0][0],X[K][0][1])][r],
-                     self.DAT[(X[K][1][0],X[K][1][1])][r],
-                     self.DAT[(X[K][2][0],X[K][2][1])][r],
-                     self.DAT[(X[K][3][0],X[K][3][1])][r],
-                     self.DAT[(X[K][4][0],X[K][4][1])][r],
-                     self.DAT[(X[K][5][0],X[K][5][1])][r],
-                     self.DAT[(X[K][6][0],X[K][6][1])][r],
-                     self.DAT[(X[K][7][0],X[K][7][1])][r],
-                ),2))
+        T+='\n'+HL
+        return T
 
-for D in ['dat/3']:#,'dat/1','dat/2']:
-    DataDir(D)
-    
-LOG.close()
+for K in [K1,K2,K3]:
+    for P in K.packages():
+        print
+        print Package(K.ID,P,K.package(P))
