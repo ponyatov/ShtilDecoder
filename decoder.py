@@ -16,12 +16,18 @@ CHBT={
 'K3':[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
 }
 
+# выходной файл с таблицей, открывать в Excel или браузере
+HTML = open('kadr1.html','w')
+
 ######################################################
 
 import os,sys,time,re
 
 # выходной файл лога
 sys.stdout=open('log.log','w')
+
+print >>HTML,'''<html><title>%s</title>
+'''%DATDIR
 
 print time.localtime()[:6],sys.argv
 print '\nDATDIR "%s"\n'%DATDIR
@@ -50,7 +56,7 @@ class Channel:
         # генерация списка битов
         self.dat = map(lambda x:int(x.split()[1]),Records)
     def __str__(self):
-        return 'Канал %i:%i [%s] sz=%i'%(\
+        return 'Канал %i:%i\t%s\t[%i]'%(\
             self.i,self.j,\
             self.DatFileName,\
             len(self))
@@ -141,8 +147,9 @@ class AnyTime:
         self.MIN= BF(dat,4,[(4,(6,7)),(5,(0,3))])
         self.HOUR=BF(dat,4,[(5,(4,7)),(6,(0,0))])
         self.DAYS=BF(dat,4,[(6,(1,7)),(7,(0,7))])
-    def __str__(self): return '%s\t\t%.2i:%.2i:%.2i:%.2i'%(HD(self.DAT),\
+    def __str__(self): return '%.2i:%.2i:%.2i:%.2i'%(\
             self.DAYS,self.HOUR,self.MIN,self.SEC)
+    def dump(self): return HD(self.DAT)
 class ShtyrTime(AnyTime):
     'Время Штиля'
 class BSKVU(AnyTime):
@@ -198,9 +205,9 @@ class Frame:
         T+='\n'+HL
         T+='\nсигнатура:\t\t%s'%self.signature
         T+='\n№ блока:\t\t%.2X'%self.blockN
-        T+='\nвремя Штыря:\t%s'%self.time
-        T+='\nБСКВУ1:\t\t\t%s'%self.BSKVU1
-        T+='\nБСКВУ2:\t\t\t%s'%self.BSKVU2
+        T+='\nвремя Штыря:\t%s\t\t%s'%(self.time.dump(),self.time)
+        T+='\nБСКВУ1:\t\t\t%s\t\t%s'%(self.BSKVU1.dump(),self.BSKVU1)
+        T+='\nБСКВУ2:\t\t\t%s\t\t%s'%(self.BSKVU2.dump(),self.BSKVU2)
         T+='\nПик DM1:\t\t%s'%self.DM1peak
         T+='\nПик DM2:\t\t%s'%self.DM2peak
         T+='\nТемпература:\t%s'%self.Temp
@@ -208,8 +215,40 @@ class Frame:
         T+='\nCLC_L:\t\t\t%.2X'%self.CRC_L
         T+='\n'+HL
         return T
+    def html(self):
+        return '''<tr><td>%i</td><td>%s</td><td>%s</td><td>%s</td></tr>'''%(\
+            self.blockN,\
+            self.time,self.BSKVU1,self.BSKVU2\
+            )
 
+BLKSET={}
 for K in [K1,K2,K3]:
     for P in K.packages():
+        F=Frame(K.ID,P,K.package(P))
         print
-        print Frame(K.ID,P,K.package(P))
+        print F
+        BLKSET[F.blockN]=F
+print >>HTML,'''
+<table cellpadding=5>
+<tr>
+<td>Номер</td>
+<td>Время</td>
+<td>Время</td>
+<td>Время</td>
+</tr>
+<tr>
+<td>блока</td>
+<td>Штиль</td>
+<td>БСКВУ1</td>
+<td>БСКВУ2</td>
+</tr>
+'''
+for B in sorted(BLKSET.keys()):
+    print >>HTML,BLKSET[B].html()
+print >>HTML,'''
+</table>
+'''
+
+print >>HTML,'''
+</html>
+'''
