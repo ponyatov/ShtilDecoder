@@ -267,7 +267,7 @@ class Frame2(Frame):
 '''
     def htmlValid(self): return {True:'',False:'bgcolor=#FFAAAA'}[self.Valid] 
     def html(self):
-        return '''<tr %s><td><a href="kadr2_%i.txt">%i</a></td>%s%s%s%s</tr>'''%(\
+        return '''<tr %s><td><a href="#%i.txt">%i</a></td>%s%s%s%s</tr>'''%(\
             self.htmlValid(),\
             self.blockN,self.blockN,\
             self.Upit.html(),\
@@ -326,7 +326,7 @@ class Frame1(Frame):
 </tr>
 '''
     def html(self):
-        return '''<tr %s><td><a href="kadr1_%i.txt">%i</a></td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
+        return '''<tr %s><td><a href="#%i">%i</a></td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
             {True:'',False:'bgcolor=#FFAAAA'}[self.Valid],
             self.blockN,self.blockN,\
             self.time,self.BSKVU1,self.BSKVU2,\
@@ -359,18 +359,17 @@ print >>HTML2,Frame2.HTMLHEADER
 for B in sorted(BLKSET1.keys()):
     BLK=BLKSET1[B]
     print >>HTML1,BLK.html()
-    F=open('%s/kadr1_%i.txt'%(DATDIR,B),'w')
-    print >>F,BLK
-    F.close()
+print >>HTML1,Frame1.HTMLFOOTER
+for B in sorted(BLKSET1.keys()):
+    BLK=BLKSET1[B]
+    print >>HTML1,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
 
 for B in sorted(BLKSET2.keys()):
     BLK=BLKSET2[B]
     print >>HTML2,BLK.html()
-    F=open('%s/kadr2_%i.txt'%(DATDIR,B),'w')
-    print >>F,BLK
-    F.close()
-
-print >>HTML1,Frame1.HTMLFOOTER
+for B in sorted(BLKSET2.keys()):
+    BLK=BLKSET2[B]
+    print >>HTML2,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
 print >>HTML2,Frame2.HTMLFOOTER
 
 print >>HTML1,'</html>'
