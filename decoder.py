@@ -367,10 +367,10 @@ for B in sorted(BLKSET1.keys()):
 for B in sorted(BLKSET2.keys()):
     BLK=BLKSET2[B]
     print >>HTML2,BLK.html()
+print >>HTML2,Frame2.HTMLFOOTER
 for B in sorted(BLKSET2.keys()):
     BLK=BLKSET2[B]
     print >>HTML2,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
-print >>HTML2,Frame2.HTMLFOOTER
 
 print >>HTML1,'</html>'
 print >>HTML2,'</html>'
