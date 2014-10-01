@@ -26,8 +26,7 @@ import os,sys,time,re,math
 # выходной файл лога
 sys.stdout=open('log.log','w')
 
-print >>HTML1,'''<html><title>%s</title>
-'''%DATDIR
+print >>HTML1,'<html><title>%s</title>'%DATDIR
 
 print time.localtime()[:6],sys.argv
 print '\nDATDIR "%s"\n'%DATDIR
@@ -64,6 +63,7 @@ class Channel:
     def __getitem__(self,idx): return self.dat[idx]
 
 # загрузка каналов из файлов
+
 DAT={}
 for i in [1,2]:
     for j in range(1,12+1):
@@ -138,7 +138,6 @@ class Signatura(vDumpable):
         assert len(dat)==3
         self.DAT=dat
     def __str__(self): return self.dump()
-    
 class AnyTime(vDumpable):
     'метка времени'
     def __init__(self,dat):
@@ -154,7 +153,6 @@ class ShtyrTime(AnyTime):
     'Время Штиля'
 class BSKVU(AnyTime):
     'Фремя БСКВУ'
-
 class PeakDM(vDumpable):
     'пик ДМ'
     def __init__(self,dat):
@@ -171,8 +169,7 @@ class PeakDM(vDumpable):
     def html(self): 
         return '<td>%s</td><td>%s</td><td>%s</td>'%(\
             self.X,self.Y,self.Z)
-
-class Termo:
+class Termo(vDumpable):
     'Температура'
     def __init__(self,dat):
         assert len(dat)==4
@@ -224,22 +221,7 @@ class Frame1:
         T+='\nCLC_L:\t\t\t%.2X'%self.CRC_L
         T+='\n'+HL
         return T
-    def html(self):
-        return '''<tr><td>%i</td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
-            self.blockN,\
-            self.time,self.BSKVU1,self.BSKVU2,\
-            self.DM1peak.html(),self.DM2peak.html(),
-            self.Temp.html()
-            )
-
-BLKSET={}
-for K in [K1,K2,K3]:
-    for P in K.packages():
-        F=Frame1(K.ID,P,K.package(P))
-        print
-        print F
-        BLKSET[F.blockN]=F
-print >>HTML1,'''
+    HTMLHEADER='''
 <H1>Кадр 1</H1>
 <table cellpadding=5 border=1>
 <tr>
@@ -266,6 +248,22 @@ print >>HTML1,'''
 <td>Штиль</td>
 </tr>
 '''
+    def html(self):
+        return '''<tr><td>%i</td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
+            self.blockN,\
+            self.time,self.BSKVU1,self.BSKVU2,\
+            self.DM1peak.html(),self.DM2peak.html(),
+            self.Temp.html()
+            )
+
+BLKSET={}
+for K in [K1,K2,K3]:
+    for P in K.packages():
+        F=Frame1(K.ID,P,K.package(P))
+        print
+        print F
+        BLKSET[F.blockN]=F
+print >>HTML1,Frame1.HTMLHEADER
 for B in sorted(BLKSET.keys()):
     print >>HTML1,BLKSET[B].html()
 print >>HTML1,'''
