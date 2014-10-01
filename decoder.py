@@ -89,19 +89,9 @@ class ByteStream:
         'перестроение индекса пакетов'
         self.INDEX=[]
         for i in range(len(self.DAT)-31):
-            if self.DAT[i:i+3]==[0x00,0x55,0xAA]:
-                if self.isOkpacket(i):
-                    self.INDEX+=[i]
-    def isOkpacket(self,addr):
-        CH,CL=self.DAT[addr+30:addr+30+2]
-        return self.checksum(addr) == CH*0x100+CL
-    def checksum(self,addr):
-        'вычисление контрольной суммы пакета начинающегося с адреса addr'
-        return sum(self.DAT[addr:addr+29+1])
-    def __str__(self):
-        T='Поток %s: %s'%(self.ID,self.BT)
-#         T+=dump(self.DAT)
-        return T
+            if self.DAT[i+1:i+3]==[0x55,0xAA]:
+                self.INDEX+=[i]
+    def __str__(self): return 'Поток %s: %s'%(self.ID,self.BT)
     def packages(self): return self.INDEX
     def package(self,addr): return self.DAT[addr:addr+32]
 
@@ -153,8 +143,8 @@ class ShtyrTime(AnyTime):
     'Время Штиля'
 class BSKVU(AnyTime):
     'Фремя БСКВУ'
-class PeakDM(vDumpable):
-    'пик ДМ'
+class MagnetField(vDumpable):
+    'магнитное поле'
     def __init__(self,dat):
         assert len(dat)==5
         self.DAT=dat
@@ -184,8 +174,8 @@ class Termo(vDumpable):
 
 ############# класс кадра ###############
 
-class Frame1:
-    'пакет'
+class Frame:
+    'пакет общий код'
     def __init__(self,ch,addr,block):
         assert len(block)==32
         self.CH=ch
@@ -195,36 +185,66 @@ class Frame1:
         self.type       =self.DAT[0]+1
         self.signature  =Signatura( self.DAT[0:2+1] )
         self.blockN     =           self.DAT[3]
-        self.time       =ShtyrTime( self.DAT[4:7+1])
-        self.BSKVU1     =BSKVU(     self.DAT[8:11+1])
-        self.BSKVU2     =BSKVU(     self.DAT[12:15+1])
-        self.DM1peak    =PeakDM(    self.DAT[16:20+1])
-        self.DM2peak    =PeakDM(    self.DAT[21:25+1])
-        self.Temp       =Termo(     self.DAT[26:29+1])
         self.CRC_H      =           self.DAT[30]
         self.CRC_L      =           self.DAT[31]
+        self.Valid      = self.isValid()
+    HL='-'*55
+    def __str__(self):
+        T='Пакет %i %s@%.4X\n'%(self.type,self.CH,self.ADDR)+self.HL
+        T+=dump(self.DAT)
+        T+='\n'+self.HL
+        T+='\nсигнатура:\t%s'%self.signature
+        T+='\n№ блока:\t\t%.2X'%self.blockN
+        T+='\nCRC_H:\t\t%.2X'%self.CRC_H
+        T+='\nCLC_L:\t\t%.2X'%self.CRC_L
+        T+='\nВалидность:\t%s'%self.Valid
+        return T
+    def isValid(self): return self.CRC()==(self.CRC_H<<8)|self.CRC_L
+    def CRC(self): return sum(self.DAT[:-2])
+
+class Frame2(Frame):
+    'пакет тип кадр2'
+    def __init__(self,ch,addr,block):
+        Frame.__init__(self, ch, addr, block)
+        # декодирование с выделением срезов из списка байт
+        self.Upit   = self.DAT[4:7+1]
+        self.DM1    = MagnetField(self.DAT[8:12+1]) 
+        self.DM2    = MagnetField(self.DAT[13:17+1])
+        self.SHINA  = self.DAT[18:29+1] 
+    def __str__(self):
+        T=Frame.__str__(self)
+        T+='\nU питания\t\t%s'%HD(self.Upit)
+        T+='\nDM1\t\t\t\t%s'%self.DM1
+        T+='\nDM2\t\t\t\t%s'%self.DM2
+        T+='\nШина\t\t\t%s'%HD(self.SHINA)
+        return T
+    
+class Frame1(Frame):
+    'пакет тип кадр1'
+    def __init__(self,ch,addr,block):
+        Frame.__init__(self, ch, addr, block)
+        # декодирование с выделением срезов из списка байт
+        self.time       =ShtyrTime(     self.DAT[4:7+1])
+        self.BSKVU1     =BSKVU(         self.DAT[8:11+1])
+        self.BSKVU2     =BSKVU(         self.DAT[12:15+1])
+        self.DM1peak    =MagnetField(   self.DAT[16:20+1])
+        self.DM2peak    =MagnetField(   self.DAT[21:25+1])
+        self.Temp       =Termo(         self.DAT[26:29+1])
     def checksum(self,addr): return sum(self.DAT[0,29+1])
     def __str__(self):
-        HL='-'*55
-        T='Пакет %.2X %s@%.4X\n'%(self.type,self.CH,self.ADDR)+HL
-        T+=dump(self.DAT)
-        T+='\n'+HL
-        T+='\nсигнатура:\t\t%s'%self.signature
-        T+='\n№ блока:\t\t%.2X'%self.blockN
-        T+='\nвремя Штыря:\t%s\t\t%s'%(self.time.dump(),self.time)
-        T+='\nБСКВУ1:\t\t\t%s\t\t%s'%(self.BSKVU1.dump(),self.BSKVU1)
-        T+='\nБСКВУ2:\t\t\t%s\t\t%s'%(self.BSKVU2.dump(),self.BSKVU2)
+        T=Frame.__str__(self)
+        T+='\nвремя Штыря:\t%s\t%s'%(self.time.dump(),self.time)
+        T+='\nБСКВУ1:\t\t%s\t%s'%(self.BSKVU1.dump(),self.BSKVU1)
+        T+='\nБСКВУ2:\t\t%s\t%s'%(self.BSKVU2.dump(),self.BSKVU2)
         T+='\nПик DM1:\t\t%s\t%s'%(self.DM1peak.dump(),self.DM1peak)
         T+='\nПик DM2:\t\t%s\t%s'%(self.DM2peak.dump(),self.DM2peak)
         T+='\nТемпература:\t%s'%self.Temp
-        T+='\nCRC_H:\t\t\t%.2X'%self.CRC_H
-        T+='\nCLC_L:\t\t\t%.2X'%self.CRC_L
-        T+='\n'+HL
+        T+='\n'+self.HL
         return T
     HTMLHEADER='''
 <H1>Кадр 1</H1>
 <table cellpadding=5 border=1>
-<tr>
+<tr bgcolor=#DDDDFF>
 <td rowspan=3>Номер<br>блока</td>
 <td rowspan=3>Время<br>Штиль</td>
 <td rowspan=3>Время<br>БСКВУ1</td>
@@ -232,11 +252,11 @@ class Frame1:
 <td colspan=6>Магнитное поле в наноПопугаях</td>
 <td colspan=3 rowspan=2>Температура</td>
 </tr>
-<tr>
+<tr bgcolor=#AAFFAA>
 <td colspan=3>DM1</td>
 <td colspan=3>DM2</td>
 </tr>
-<tr>
+<tr bgcolor=#AAFFAA>
 <td>X</td>
 <td>Y</td>
 <td>Z</td>
@@ -248,28 +268,42 @@ class Frame1:
 <td>Штиль</td>
 </tr>
 '''
+    HTMLFOOTER='</table>'
     def html(self):
-        return '''<tr><td>%i</td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
-            self.blockN,\
+        return '''<tr %s><td><a href="kadr1_%i.txt">%i</a></td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
+            {True:'',False:'bgcolor=#FFAAAA'}[self.Valid],
+            self.blockN,self.blockN,\
             self.time,self.BSKVU1,self.BSKVU2,\
             self.DM1peak.html(),self.DM2peak.html(),
             self.Temp.html()
             )
 
-BLKSET={}
+############# разбор потоков K1..K3 на пакеты ###############
+
+BLKSET1={}
+BLKSET2={}
 for K in [K1,K2,K3]:
     for P in K.packages():
-        F=Frame1(K.ID,P,K.package(P))
-        print
-        print F
-        BLKSET[F.blockN]=F
-print >>HTML1,Frame1.HTMLHEADER
-for B in sorted(BLKSET.keys()):
-    print >>HTML1,BLKSET[B].html()
-print >>HTML1,'''
-</table>
-'''
+        PACK=K.package(P)
+        if PACK[0]+1==1:
+            F=Frame1(K.ID,P,PACK) 
+            BLKSET1[F.blockN]=F
+        elif PACK[0]+1==2:
+            F=Frame2(K.ID,P,PACK) 
+            BLKSET2[F.blockN]=F
+        else:
+            F=Frame(K.ID,P,PACK)
+        print '\n%s'%F
 
-print >>HTML1,'''
-</html>
-'''
+############# генерация отчетов ###############
+
+print >>HTML1,Frame1.HTMLHEADER
+for B in sorted(BLKSET1.keys()):
+    BLK=BLKSET1[B]
+    print >>HTML1,BLK.html()
+    F=open('%s/kadr1_%i.txt'%(DATDIR,B),'w')
+    print >>F,BLK
+    F.close()
+print >>HTML1,Frame1.HTMLFOOTER
+
+print >>HTML1,'</html>'
