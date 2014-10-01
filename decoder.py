@@ -198,7 +198,7 @@ class Frame:
         T+='\nCRC_H:\t\t%.2X'%self.CRC_H
         T+='\nCLC_L:\t\t%.2X'%self.CRC_L
         T+='\nВалидность:\t%s'%self.Valid
-        return T
+        return T+'\n'
     def isValid(self): return self.CRC()==(self.CRC_H<<8)|self.CRC_L
     def CRC(self): return sum(self.DAT[:-2])
 
