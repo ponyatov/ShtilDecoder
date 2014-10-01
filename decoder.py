@@ -16,8 +16,9 @@ CHBT={
 'K3':[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
 }
 
-# выходной файл с таблицей, открывать в Excel или браузере
+# выходные файлы с отчетами, открывать в Excel или браузере
 HTML1 = open('%s/kadr1.html'%DATDIR,'w')
+HTML2 = open('%s/kadr2.html'%DATDIR,'w')
 
 ######################################################
 
@@ -26,7 +27,8 @@ import os,sys,time,re,math
 # выходной файл лога
 sys.stdout=open('log.log','w')
 
-print >>HTML1,'<html><title>%s</title>'%DATDIR
+print >>HTML1,'<html><title>Кадр 1: %s</title>'%DATDIR
+print >>HTML2,'<html><title>Кадр 2: %s</title>'%DATDIR
 
 print time.localtime()[:6],sys.argv
 print '\nDATDIR "%s"\n'%DATDIR
@@ -121,6 +123,8 @@ def HD(dat):
 
 class vDumpable:
     def dump(self): return HD(self.DAT)
+    def __str__(self): return HD(self.DAT)
+    def html(self): return '<td>%s</td>'%HD(self.DAT)
 
 class Signatura(vDumpable):
     'Заголовок'
@@ -172,6 +176,22 @@ class Termo(vDumpable):
     def html(self): return '<td>%s</td><td>%s</td><td>%s</td>'%(\
             self.DM1,self.DM2,self.SHT)
 
+class Upit(vDumpable):
+    'Напряжения питания'
+    def __init__(self,dat):
+        assert len(dat)==4
+        self.DAT=dat
+        self.MIN=0.0
+        self.MED=0.0
+        self.MAX=0.0
+    def html(self): return '<td>%.2f</td><td>%.2f</td><td>%.2f</td>'%(\
+        self.MIN,self.MED,self.MAX)
+class Shina(vDumpable):
+    'Шина-Корпус'
+    def __init__(self,dat):
+        assert len(dat)==29-18+1
+        self.DAT=dat
+
 ############# класс кадра ###############
 
 class Frame:
@@ -201,23 +221,59 @@ class Frame:
         return T+'\n'
     def isValid(self): return self.CRC()==(self.CRC_H<<8)|self.CRC_L
     def CRC(self): return sum(self.DAT[:-2])
+    HTMLFOOTER='</table>'
+    HEADBGCOLOR='#DDDDFF'
 
 class Frame2(Frame):
     'пакет тип кадр2'
     def __init__(self,ch,addr,block):
         Frame.__init__(self, ch, addr, block)
         # декодирование с выделением срезов из списка байт
-        self.Upit   = self.DAT[4:7+1]
+        self.Upit   = Upit(self.DAT[4:7+1])
         self.DM1    = MagnetField(self.DAT[8:12+1]) 
         self.DM2    = MagnetField(self.DAT[13:17+1])
-        self.SHINA  = self.DAT[18:29+1] 
+        self.SHINA  = Shina(self.DAT[18:29+1]) 
     def __str__(self):
         T=Frame.__str__(self)
-        T+='\nU питания\t\t%s'%HD(self.Upit)
-        T+='\nDM1\t\t\t\t%s'%self.DM1
-        T+='\nDM2\t\t\t\t%s'%self.DM2
-        T+='\nШина\t\t\t%s'%HD(self.SHINA)
+        T+='\nU питания\t\t%s'%self.Upit
+        T+='\nDM1\t\t%s'%self.DM1
+        T+='\nDM2\t\t%s'%self.DM2
+        T+='\nШина\t\t%s'%self.SHINA
         return T
+    HTMLHEADER='''
+<H1>Кадр 2</H1>
+<table cellpadding=5 border=1>
+<tr bgcolor='''+Frame.HEADBGCOLOR+'''>
+<td rowspan=3>Номер<br>блока</td>
+<td rowspan=2 colspan=3>U питания<br>в Болтах</td>
+<td colspan=6>Магнитное поле в наноПопугаях</td>
+<td rowspan=3>Шина<br>Корпус</td>
+</tr>
+<tr bgcolor=#AAFFAA>
+<td colspan=3>DM1</td>
+<td colspan=3>DM2</td>
+</tr>
+<tr bgcolor=#AAFFAA>
+<td>min</td>
+<td>среднее</td>
+<td>max</td>
+<td>X</td>
+<td>Y</td>
+<td>Z</td>
+<td>X</td>
+<td>Y</td>
+<td>Z</td>
+</tr>
+'''
+    def htmlValid(self): return {True:'',False:'bgcolor=#FFAAAA'}[self.Valid] 
+    def html(self):
+        return '''<tr %s><td><a href="kadr2_%i.txt">%i</a></td>%s%s%s%s</tr>'''%(\
+            self.htmlValid(),\
+            self.blockN,self.blockN,\
+            self.Upit.html(),\
+            self.DM1.html(),self.DM2.html(),\
+            self.SHINA.html()\
+            )
     
 class Frame1(Frame):
     'пакет тип кадр1'
@@ -244,19 +300,20 @@ class Frame1(Frame):
     HTMLHEADER='''
 <H1>Кадр 1</H1>
 <table cellpadding=5 border=1>
-<tr bgcolor=#DDDDFF>
+<tr bgcolor='''+Frame.HEADBGCOLOR+'''>
 <td rowspan=3>Номер<br>блока</td>
-<td rowspan=3>Время<br>Штиль</td>
-<td rowspan=3>Время<br>БСКВУ1</td>
-<td rowspan=3>Время<br>БСКВУ2</td>
+<td rowspan=2 colspan=3>Время, ДД:ЧЧ:ММ:СС</td>
 <td colspan=6>Магнитное поле в наноПопугаях</td>
-<td colspan=3 rowspan=2>Температура</td>
+<td colspan=3 rowspan=2>Температура<br>в микроГрадусниках</td>
 </tr>
 <tr bgcolor=#AAFFAA>
 <td colspan=3>DM1</td>
 <td colspan=3>DM2</td>
 </tr>
 <tr bgcolor=#AAFFAA>
+<td>Штиль</td>
+<td>БСКВУ1</td>
+<td>БСКВУ2</td>
 <td>X</td>
 <td>Y</td>
 <td>Z</td>
@@ -268,7 +325,6 @@ class Frame1(Frame):
 <td>Штиль</td>
 </tr>
 '''
-    HTMLFOOTER='</table>'
     def html(self):
         return '''<tr %s><td><a href="kadr1_%i.txt">%i</a></td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
             {True:'',False:'bgcolor=#FFAAAA'}[self.Valid],
@@ -298,12 +354,24 @@ for K in [K1,K2,K3]:
 ############# генерация отчетов ###############
 
 print >>HTML1,Frame1.HTMLHEADER
+print >>HTML2,Frame2.HTMLHEADER
+
 for B in sorted(BLKSET1.keys()):
     BLK=BLKSET1[B]
     print >>HTML1,BLK.html()
     F=open('%s/kadr1_%i.txt'%(DATDIR,B),'w')
     print >>F,BLK
     F.close()
+
+for B in sorted(BLKSET2.keys()):
+    BLK=BLKSET2[B]
+    print >>HTML2,BLK.html()
+    F=open('%s/kadr2_%i.txt'%(DATDIR,B),'w')
+    print >>F,BLK
+    F.close()
+
 print >>HTML1,Frame1.HTMLFOOTER
+print >>HTML2,Frame2.HTMLFOOTER
 
 print >>HTML1,'</html>'
+print >>HTML2,'</html>'
