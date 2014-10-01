@@ -17,16 +17,16 @@ CHBT={
 }
 
 # выходной файл с таблицей, открывать в Excel или браузере
-HTML = open('kadr1.html','w')
+HTML1 = open('%s/kadr1.html'%DATDIR,'w')
 
 ######################################################
 
-import os,sys,time,re
+import os,sys,time,re,math
 
 # выходной файл лога
 sys.stdout=open('log.log','w')
 
-print >>HTML,'''<html><title>%s</title>
+print >>HTML1,'''<html><title>%s</title>
 '''%DATDIR
 
 print time.localtime()[:6],sys.argv
@@ -129,16 +129,17 @@ def HD(dat):
 
 ############# классы полей кадра ###############
 
-class Signatura:
+class vDumpable:
+    def dump(self): return HD(self.DAT)
+
+class Signatura(vDumpable):
     'Заголовок'
     def __init__(self,dat):
         assert len(dat)==3
-        self.dat=dat
-    def __str__(self):
-        A,B,C=self.dat 
-        return HD(self.dat)
+        self.DAT=dat
+    def __str__(self): return self.dump()
     
-class AnyTime:
+class AnyTime(vDumpable):
     'метка времени'
     def __init__(self,dat):
         assert len(dat)==4
@@ -149,13 +150,12 @@ class AnyTime:
         self.DAYS=BF(dat,4,[(6,(1,7)),(7,(0,7))])
     def __str__(self): return '%.2i:%.2i:%.2i:%.2i'%(\
             self.DAYS,self.HOUR,self.MIN,self.SEC)
-    def dump(self): return HD(self.DAT)
 class ShtyrTime(AnyTime):
     'Время Штиля'
 class BSKVU(AnyTime):
     'Фремя БСКВУ'
 
-class PeakDM:
+class PeakDM(vDumpable):
     'пик ДМ'
     def __init__(self,dat):
         assert len(dat)==5
@@ -163,7 +163,13 @@ class PeakDM:
         self.X =BF(dat,16,[(16,(0,7)),(17,(0,3))])
         self.Y =BF(dat,16,[(17,(4,7)),(18,(0,7))])
         self.Z =BF(dat,16,[(19,(0,7)),(20,(0,7))])
-    def __str__(self): return '%s\tX:%i Y:%i Z:%i'%(HD(self.DAT),\
+    def __str__(self): 
+        return 'X:%i Y:%i Z:%i'%(\
+            self.X,self.Y,self.Z)
+    def module(self):
+        return math.sqrt(self.X**2+self.Y**2+self.Z**2) 
+    def html(self): 
+        return '<td>%s</td><td>%s</td><td>%s</td>'%(\
             self.X,self.Y,self.Z)
 
 class Termo:
@@ -176,17 +182,20 @@ class Termo:
         self.SHT =BF(dat,26,[(29,(0,7))])
     def __str__(self): return '%s\tDM1:%i DM2:%i SHT:%i'%(HD(self.DAT),\
             self.DM1,self.DM2,self.SHT)
+    def html(self): return '<td>%s</td><td>%s</td><td>%s</td>'%(\
+            self.DM1,self.DM2,self.SHT)
 
 ############# класс кадра ###############
 
-class Frame:
+class Frame1:
     'пакет'
     def __init__(self,ch,addr,block):
         assert len(block)==32
         self.CH=ch
         self.ADDR=addr
         self.DAT=block
-        # декодирование с выделением срезов из списка байт 
+        # декодирование с выделением срезов из списка байт
+        self.type       =self.DAT[0]+1
         self.signature  =Signatura( self.DAT[0:2+1] )
         self.blockN     =           self.DAT[3]
         self.time       =ShtyrTime( self.DAT[4:7+1])
@@ -200,7 +209,7 @@ class Frame:
     def checksum(self,addr): return sum(self.DAT[0,29+1])
     def __str__(self):
         HL='-'*55
-        T='Пакет %s@%.4X\n'%(self.CH,self.ADDR)+HL
+        T='Пакет %.2X %s@%.4X\n'%(self.type,self.CH,self.ADDR)+HL
         T+=dump(self.DAT)
         T+='\n'+HL
         T+='\nсигнатура:\t\t%s'%self.signature
@@ -208,47 +217,61 @@ class Frame:
         T+='\nвремя Штыря:\t%s\t\t%s'%(self.time.dump(),self.time)
         T+='\nБСКВУ1:\t\t\t%s\t\t%s'%(self.BSKVU1.dump(),self.BSKVU1)
         T+='\nБСКВУ2:\t\t\t%s\t\t%s'%(self.BSKVU2.dump(),self.BSKVU2)
-        T+='\nПик DM1:\t\t%s'%self.DM1peak
-        T+='\nПик DM2:\t\t%s'%self.DM2peak
+        T+='\nПик DM1:\t\t%s\t%s'%(self.DM1peak.dump(),self.DM1peak)
+        T+='\nПик DM2:\t\t%s\t%s'%(self.DM2peak.dump(),self.DM2peak)
         T+='\nТемпература:\t%s'%self.Temp
         T+='\nCRC_H:\t\t\t%.2X'%self.CRC_H
         T+='\nCLC_L:\t\t\t%.2X'%self.CRC_L
         T+='\n'+HL
         return T
     def html(self):
-        return '''<tr><td>%i</td><td>%s</td><td>%s</td><td>%s</td></tr>'''%(\
+        return '''<tr><td>%i</td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
             self.blockN,\
-            self.time,self.BSKVU1,self.BSKVU2\
+            self.time,self.BSKVU1,self.BSKVU2,\
+            self.DM1peak.html(),self.DM2peak.html(),
+            self.Temp.html()
             )
 
 BLKSET={}
 for K in [K1,K2,K3]:
     for P in K.packages():
-        F=Frame(K.ID,P,K.package(P))
+        F=Frame1(K.ID,P,K.package(P))
         print
         print F
         BLKSET[F.blockN]=F
-print >>HTML,'''
-<table cellpadding=5>
+print >>HTML1,'''
+<H1>Кадр 1</H1>
+<table cellpadding=5 border=1>
 <tr>
-<td>Номер</td>
-<td>Время</td>
-<td>Время</td>
-<td>Время</td>
+<td rowspan=3>Номер<br>блока</td>
+<td rowspan=3>Время<br>Штиль</td>
+<td rowspan=3>Время<br>БСКВУ1</td>
+<td rowspan=3>Время<br>БСКВУ2</td>
+<td colspan=6>Магнитное поле в наноПопугаях</td>
+<td colspan=3 rowspan=2>Температура</td>
 </tr>
 <tr>
-<td>блока</td>
+<td colspan=3>DM1</td>
+<td colspan=3>DM2</td>
+</tr>
+<tr>
+<td>X</td>
+<td>Y</td>
+<td>Z</td>
+<td>X</td>
+<td>Y</td>
+<td>Z</td>
+<td>DM1</td>
+<td>DM2</td>
 <td>Штиль</td>
-<td>БСКВУ1</td>
-<td>БСКВУ2</td>
 </tr>
 '''
 for B in sorted(BLKSET.keys()):
-    print >>HTML,BLKSET[B].html()
-print >>HTML,'''
+    print >>HTML1,BLKSET[B].html()
+print >>HTML1,'''
 </table>
 '''
 
-print >>HTML,'''
+print >>HTML1,'''
 </html>
 '''
