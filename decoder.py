@@ -214,7 +214,7 @@ class Frame:
         T+=dump(self.DAT)
         T+='\n'+self.HL
         T+='\nсигнатура:\t%s'%self.signature
-        T+='\n№ блока:\t\t%.2X'%self.blockN
+        T+='\n№ блока:\t%.2X'%self.blockN
         T+='\nCRC_H:\t\t%.2X'%self.CRC_H
         T+='\nCLC_L:\t\t%.2X'%self.CRC_L
         T+='\nВалидность:\t%s'%self.Valid
@@ -235,10 +235,10 @@ class Frame2(Frame):
         self.SHINA  = Shina(self.DAT[18:29+1]) 
     def __str__(self):
         T=Frame.__str__(self)
-        T+='\nU питания\t\t%s'%self.Upit
+        T+='\nU питания\t%s'%self.Upit
         T+='\nDM1\t\t%s'%self.DM1
         T+='\nDM2\t\t%s'%self.DM2
-        T+='\nШина\t\t%s'%self.SHINA
+        T+='\nШина-Корпус\t%s'%self.SHINA
         return T
     HTMLHEADER='''
 <H1>Кадр 2</H1>
@@ -267,7 +267,7 @@ class Frame2(Frame):
 '''
     def htmlValid(self): return {True:'',False:'bgcolor=#FFAAAA'}[self.Valid] 
     def html(self):
-        return '''<tr %s><td><a href="#%i.txt">%i</a></td>%s%s%s%s</tr>'''%(\
+        return '''<tr %s><td><a href="#%i">%i</a></td>%s%s%s%s</tr>'''%(\
             self.htmlValid(),\
             self.blockN,self.blockN,\
             self.Upit.html(),\
@@ -289,11 +289,11 @@ class Frame1(Frame):
     def checksum(self,addr): return sum(self.DAT[0,29+1])
     def __str__(self):
         T=Frame.__str__(self)
-        T+='\nвремя Штыря:\t%s\t%s'%(self.time.dump(),self.time)
-        T+='\nБСКВУ1:\t\t%s\t%s'%(self.BSKVU1.dump(),self.BSKVU1)
-        T+='\nБСКВУ2:\t\t%s\t%s'%(self.BSKVU2.dump(),self.BSKVU2)
-        T+='\nПик DM1:\t\t%s\t%s'%(self.DM1peak.dump(),self.DM1peak)
-        T+='\nПик DM2:\t\t%s\t%s'%(self.DM2peak.dump(),self.DM2peak)
+        T+='\nвремя Штыря:\t%s\t\t%s'%(self.time.dump(),self.time)
+        T+='\nБСКВУ1:\t\t%s\t\t%s'%(self.BSKVU1.dump(),self.BSKVU1)
+        T+='\nБСКВУ2:\t\t%s\t\t%s'%(self.BSKVU2.dump(),self.BSKVU2)
+        T+='\nПик DM1:\t%s\t%s'%(self.DM1peak.dump(),self.DM1peak)
+        T+='\nПик DM2:\t%s\t%s'%(self.DM2peak.dump(),self.DM2peak)
         T+='\nТемпература:\t%s'%self.Temp
         T+='\n'+self.HL
         return T
