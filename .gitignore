@@ -3,3 +3,6 @@
 *.obj
 dat/*
 *.log
+gnuplot
+*.exe
+

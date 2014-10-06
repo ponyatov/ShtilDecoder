@@ -20,7 +20,7 @@ except IndexError:
 DATFILEMASK = '%s/374ШИМП_%i (%i)(K).dat'
 
 # расположение бинарника GnuGlot
-GNUPLOT = r'C:\Graph\gnuplot\bin\gnuplot' 
+GNUPLOT = r'gnuplot\gnuplot.exe' 
 
 CHBT={
 # разбитовка каналов: байт 76543210
