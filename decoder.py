@@ -14,7 +14,7 @@ try:
     DATDIR = sys.argv[1]
 except IndexError:
     DATDIR='dat/3' 
-# DATDIR = r'\\arhive\Public\Arseniy\Штиль-М\06 прот'
+    DATDIR = r'\\arhive\Public\Arseniy\Штиль-М\06 прот'
 
 # маска имени файла
 DATFILEMASK = '%s/374ШИМП_%i (%i)(K).dat'

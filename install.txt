@@ -1,0 +1,36 @@
+поставить Git (система контроля версий)
+
+Склонировать существующий репозиторий (из командной строки):
+
+[Win]+[R] cmd
+
+> D:
+> cd \tmp
+> git clone --depth=1 -o gh https://github.com/ponyatov/ShtilDecoder.git Shtyr
+
+Cloning into 'Shtyr'...
+remote: Counting objects: 13, done.
+remote: Compressing objects: 100% (11/11), done.
+remote: Total 13 (delta 0), reused 9 (delta 0)
+Unpacking objects: 100% (13/13), done.
+Checking connectivity... done.
+
+автообновление на последнюю версию:
+
+[Win]+[R] cmd
+
+> d:
+> cd \tmp\Shtyr
+> git pull
+
+Для работы нужны:
+
+1) интерпретатор Python 2.7.8
+	https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi
+2) GnuPlot
+	http://sourceforge.net/projects/gnuplot/files/gnuplot/4.6.6/gp466-win32-setup.exe/download
+
+можно указать какой каталог отработать из командной строки,
+но не использовать кириллицу, сетевые шары и прочую ересь
+
+настройки программы см. начало исходника, возможно потребуется поменять переменную GNUPLOT
