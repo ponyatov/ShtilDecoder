@@ -19,16 +19,18 @@ CHBT={
 # выходные файлы с отчетами, открывать в Excel или браузере
 HTML1 = open('%s/kadr1.html'%DATDIR,'w')
 HTML2 = open('%s/kadr2.html'%DATDIR,'w')
+HTMLS = open('%s/stat.html'%DATDIR,'w')
 
 ######################################################
 
-import os,sys,time,re,math
+import os,sys,time,re,math,tempfile
 
 # выходной файл лога
 sys.stdout=open('log.log','w')
 
 print >>HTML1,'<html><title>Кадр 1: %s</title>'%DATDIR
 print >>HTML2,'<html><title>Кадр 2: %s</title>'%DATDIR
+print >>HTMLS,'<html><title>Статистика: %s</title>'%DATDIR
 
 print time.localtime()[:6],sys.argv
 print '\nDATDIR "%s"\n'%DATDIR
@@ -41,6 +43,51 @@ def dump(dat):
         if addr%0x10==0: T+='\n%.4X\t'%addr
         T+='%.2X '%dat[addr]
     return T
+
+class BrokkenStatistics:
+    'статистика по битым пакетам'
+    def __init__(self): self.dat={}
+    def __getitem__(self,item):
+        try:
+            T = self.dat[item]
+        except KeyError:
+            T = 0 
+        return T
+    def __setitem__(self,item,value):
+        self.dat[item]=value
+    def __str__(self):
+        T='<table border=1 cellpadding=3>\n'
+        T+='<tr bgcolor=lightcyan>'
+        T+='<td>тип</td>'
+        T+='<td>всего</td>'
+        T+='<td colspan=2>битых</td>'
+        T+='<td>распознавание</td>'
+        T+='</tr>\n'
+        X={}
+        for i in self.dat:
+            X[i[0]]=0
+        del X['c']
+        T+=self.htline('c')
+        for i in sorted(X): T+=self.htline(i)
+        T+='</table>\n'
+        return T
+    def htline(self,i):
+        if i=='c':
+            x='всего'
+            T='<tr bgcolor="#FFFFAA">'
+        else:
+            x=i
+            T='<tr>'
+        obs=self.dat[i,'obs']
+        bit=self.dat[i,'bit']
+        proc=100*float(bit)/obs
+        T+='<td>%s</td>'%x
+        T+='<td>%s</td>'%obs
+        T+='<td>%s</td><td>%.1f%%</td><td>%.1f%%</td>'%(bit,proc,100-proc/2)
+        T+='</tr>\n'
+        return T
+        
+STATBROK=BrokkenStatistics()
 
 ############################
 
@@ -132,6 +179,7 @@ class Signatura(vDumpable):
         assert len(dat)==3
         self.DAT=dat
     def __str__(self): return self.dump()
+
 class AnyTime(vDumpable):
     'метка времени'
     def __init__(self,dat):
@@ -143,10 +191,13 @@ class AnyTime(vDumpable):
         self.DAYS=BF(dat,4,[(6,(1,7)),(7,(0,7))])
     def __str__(self): return '%.2i:%.2i:%.2i:%.2i'%(\
             self.DAYS,self.HOUR,self.MIN,self.SEC)
+
 class ShtyrTime(AnyTime):
     'Время Штиля'
+
 class BSKVU(AnyTime):
     'Фремя БСКВУ'
+
 class MagnetField(vDumpable):
     'магнитное поле'
     def __init__(self,dat):
@@ -163,6 +214,7 @@ class MagnetField(vDumpable):
     def html(self): 
         return '<td>%s</td><td>%s</td><td>%s</td>'%(\
             self.X,self.Y,self.Z)
+
 class Termo(vDumpable):
     'Температура'
     def __init__(self,dat):
@@ -186,11 +238,40 @@ class Upit(vDumpable):
         self.MAX=0.0
     def html(self): return '<td>%.2f</td><td>%.2f</td><td>%.2f</td>'%(\
         self.MIN,self.MED,self.MAX)
+
 class Shina(vDumpable):
     'Шина-Корпус'
     def __init__(self,dat):
         assert len(dat)==29-18+1
         self.DAT=dat
+        self.SK1=BF(dat,18,[(18,(0,7)),(19,(0,1))])
+        self.SK2=BF(dat,18,[(20,(0,7)),(21,(0,1))])
+        self.SK3=BF(dat,18,[(22,(0,7)),(23,(0,1))])
+        self.SK4=BF(dat,18,[(24,(0,7)),(25,(0,1))])
+        self.SK5=BF(dat,18,[(26,(0,7)),(27,(0,1))])
+        self.SK6=BF(dat,18,[(28,(0,7)),(29,(0,1))])
+    def html(self):
+        T=tempfile.TemporaryFile(dir=DATDIR,delete=False)
+        TN=T.name
+        TNS=TN.split('\\')[-1]
+        print >>sys.stderr,TN
+        print >>T,"""
+set terminal png size 128,64
+set output '%s/%s.png'
+unset xtics
+unset ytics
+plot '-'"""%(DATDIR,TNS)
+        D=[self.SK1,self.SK2,self.SK3,self.SK4,self.SK5,self.SK6]
+        for i in range(len(D)):
+            print >>T,'%s\t%s'%(i,D[i])
+        print >>T,''
+        T.close()
+#         print >>sys.stderr,os.system(r'C:\Graph\gnuplot\bin\gnuplot %s'%TN)
+        print >>sys.stderr,os.remove(TN)
+        print >>sys.stderr,'\n'
+        return '<td><img src="%s.png" alt="%s %s %s %s %s %s"></td>'%(\
+        TNS,\
+        self.SK1,self.SK2,self.SK3,self.SK4,self.SK5,self.SK6)
 
 ############# класс кадра ###############
 
@@ -208,6 +289,12 @@ class Frame:
         self.CRC_H      =           self.DAT[30]
         self.CRC_L      =           self.DAT[31]
         self.Valid      = self.isValid()
+        # накопление статистики
+        STATBROK[('c','obs')] += 1
+        STATBROK[(self.type,'obs')] += 1
+        if not self.Valid: 
+            STATBROK[('c','bit')] +=1
+            STATBROK[(self.type,'bit')] +=1
     HL='-'*55
     def __str__(self):
         T='Пакет %i %s@%.4X\n'%(self.type,self.CH,self.ADDR)+self.HL
@@ -374,3 +461,6 @@ for B in sorted(BLKSET2.keys()):
 
 print >>HTML1,'</html>'
 print >>HTML2,'</html>'
+print >>HTMLS,'<pre>%s</pre>'%STATBROK
+
+print STATBROK
