@@ -1,5 +1,10 @@
 # -*- coding: cp1251 -*-
 # Декодер файлов Штыря №2
+# нужен 
+# интерпретатор Python 2.7.x:
+#     https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi
+# GnuPlot:
+#     http://sourceforge.net/projects/gnuplot/files/gnuplot/4.6.6/gp466-win32-setup.exe/download
 ######################################################
 
 # каталог с данными
