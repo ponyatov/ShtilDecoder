@@ -7,11 +7,20 @@
 #     http://sourceforge.net/projects/gnuplot/files/gnuplot/4.6.6/gp466-win32-setup.exe/download
 ######################################################
 
+import sys
+
 # каталог с данными
-DATDIR='dat/3' 
+try:
+    DATDIR = sys.argv[1]
+except IndexError:
+    DATDIR='dat/3' 
+# DATDIR = r'\\arhive\Public\Arseniy\Штиль-М\06 прот'
 
 # маска имени файла
 DATFILEMASK = '%s/374ШИМП_%i (%i)(K).dat'
+
+# расположение бинарника GnuGlot
+GNUPLOT = r'C:\Graph\gnuplot\bin\gnuplot' 
 
 CHBT={
 # разбитовка каналов: байт 76543210
@@ -28,10 +37,10 @@ HTMLS = open('%s/stat.html'%DATDIR,'w')
 
 ######################################################
 
-import os,sys,time,re,math,tempfile
+import os,time,re,math
 
 # выходной файл лога
-sys.stdout=open('log.log','w')
+# sys.stdout=open('log.log','w')
 
 print >>HTML1,'<html><title>Кадр 1: %s</title>'%DATDIR
 print >>HTML2,'<html><title>Кадр 2: %s</title>'%DATDIR
@@ -90,7 +99,10 @@ class BrokkenStatistics:
         T+='<td>%s</td>'%obs
         T+='<td>%s</td><td>%.1f%%</td><td>%.1f%%</td>'%(bit,proc,100-proc/2)
         T+='</tr>\n'
-        return T
+        if proc>95:
+            return ''
+        else:
+            return T
         
 STATBROK=BrokkenStatistics()
 
@@ -246,8 +258,9 @@ class Upit(vDumpable):
 
 class Shina(vDumpable):
     'Шина-Корпус'
-    def __init__(self,dat):
+    def __init__(self,blockN,dat):
         assert len(dat)==29-18+1
+        self.blockN=blockN
         self.DAT=dat
         self.SK1=BF(dat,18,[(18,(0,7)),(19,(0,1))])
         self.SK2=BF(dat,18,[(20,(0,7)),(21,(0,1))])
@@ -256,24 +269,26 @@ class Shina(vDumpable):
         self.SK5=BF(dat,18,[(26,(0,7)),(27,(0,1))])
         self.SK6=BF(dat,18,[(28,(0,7)),(29,(0,1))])
     def html(self):
-        T=tempfile.TemporaryFile(dir=DATDIR,delete=False)
-        TN=T.name
-        TNS=TN.split('\\')[-1]
-        print >>sys.stderr,TN
+        TNS='shina_%s'%self.blockN
+        TN='%s/%s'%(DATDIR,TNS)
+        T=open(TN,'w')
         print >>T,"""
 set terminal png size 128,64
 set output '%s/%s.png'
 unset xtics
 unset ytics
-plot '-'"""%(DATDIR,TNS)
+unset key
+unset border
+set bmargin 0
+set yrange [0:500]
+plot '-' w l lt -1 lw 2 """%(DATDIR,TNS)
         D=[self.SK1,self.SK2,self.SK3,self.SK4,self.SK5,self.SK6]
         for i in range(len(D)):
             print >>T,'%s\t%s'%(i,D[i])
         print >>T,''
         T.close()
-#         print >>sys.stderr,os.system(r'C:\Graph\gnuplot\bin\gnuplot %s'%TN)
-        print >>sys.stderr,os.remove(TN)
-        print >>sys.stderr,'\n'
+        CMD=r'%s "%s"'%(GNUPLOT,TN) ; print CMD
+        os.system(CMD) ; os.remove(TN)
         return '<td><img src="%s.png" alt="%s %s %s %s %s %s"></td>'%(\
         TNS,\
         self.SK1,self.SK2,self.SK3,self.SK4,self.SK5,self.SK6)
@@ -324,7 +339,7 @@ class Frame2(Frame):
         self.Upit   = Upit(self.DAT[4:7+1])
         self.DM1    = MagnetField(self.DAT[8:12+1]) 
         self.DM2    = MagnetField(self.DAT[13:17+1])
-        self.SHINA  = Shina(self.DAT[18:29+1]) 
+        self.SHINA  = Shina(self.blockN,self.DAT[18:29+1]) 
     def __str__(self):
         T=Frame.__str__(self)
         T+='\nU питания\t%s'%self.Upit
