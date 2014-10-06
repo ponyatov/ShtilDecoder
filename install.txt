@@ -1,3 +1,18 @@
+Для работы нужны:
+
+1) интерпретатор Python 2.7.8
+	https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi
+2) GnuPlot
+	http://sourceforge.net/projects/gnuplot/files/gnuplot/4.6.6/gp466-win32-setup.exe/download
+
+можно указать какой каталог отработать из командной строки,
+но не использовать кириллицу, сетевые шары и прочую ересь
+
+настройки программы см. начало исходника, возможно потребуется поменять переменную GNUPLOT
+
+
+установка скрипта: 
+
 поставить Git (система контроля версий)
 
 Склонировать существующий репозиторий (из командной строки):
@@ -23,14 +38,16 @@ Checking connectivity... done.
 > cd \tmp\Shtyr
 > git pull
 
-Для работы нужны:
+remote: Counting objects: 4, done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 4 (delta 2), reused 4 (delta 2)
+Unpacking objects: 100% (4/4), done.
+From https://github.com/ponyatov/ShtilDecoder
+   da0b0e7..b3f9e45  master     -> gh/master
+Updating da0b0e7..b3f9e45
+Fast-forward
+ decoder.py  |  2 +-
+ install.txt | 36 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 37 insertions(+), 1 deletion(-)
+ create mode 100644 install.txt
 
-1) интерпретатор Python 2.7.8
-	https://www.python.org/ftp/python/2.7.8/python-2.7.8.msi
-2) GnuPlot
-	http://sourceforge.net/projects/gnuplot/files/gnuplot/4.6.6/gp466-win32-setup.exe/download
-
-можно указать какой каталог отработать из командной строки,
-но не использовать кириллицу, сетевые шары и прочую ересь
-
-настройки программы см. начало исходника, возможно потребуется поменять переменную GNUPLOT
