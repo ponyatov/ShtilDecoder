@@ -9,6 +9,7 @@ setup(
 )
 os.system('mv dist/* ./')
 os.system('rm -rf build dist')
+os.mkdir('gnuplot')
 os.system('cp C:/MathPlot/gnuplot/bin/*.exe gnuplot/')
 os.system('cp C:/MathPlot/gnuplot/bin/*.dll gnuplot/')
 os.system('cp C:/MathPlot/gnuplot/bin/*.chm gnuplot/')
