@@ -337,9 +337,26 @@ class Frame:
     def CRC(self): return sum(self.DAT[:-2])
     HTMLFOOTER='</table>'
     HEADBGCOLOR='#DDDDFF'
+    def html(self): return '<pre>%s</pre>'%str(self)
+
+class Frame4(Frame):
+    'пакет тип кадр4'
+    def html(self): return '<tr><td>%s</td><td></td><td></td><td></td></tr>'%self.blockN
+    HTMLHEADER='''
+<H1>Кадр 4</H1>
+<table cellpadding=5 border=1>
+<tr bgcolor='''+Frame.HEADBGCOLOR+'''>
+<td>Номер<br>блока</td>
+<td>Время</td>
+<td>Источник<br>сообщения</td>
+<td>№ подблока</td>
+<td>Отсчеты АЦП</td>
+</tr>
+'''
 
 class Frame3(Frame):
     'пакет тип кадр3'
+    def html(self): return '<tr><td>%s</td><td></td><td></td><td></td></tr>'%self.blockN
     HTMLHEADER='''
 <H1>Кадр 3</H1>
 <table cellpadding=5 border=1>
@@ -480,6 +497,8 @@ class Frame1(Frame):
 
 BLKSET1={}
 BLKSET2={}
+BLKSET3={}
+BLKSET4={}
 for K in [K1,K2,K3]:
     for P in K.packages():
         PACK=K.package(P)
@@ -489,6 +508,12 @@ for K in [K1,K2,K3]:
         elif PACK[0]+1==2:
             F=Frame2(K.ID,P,PACK) 
             BLKSET2[F.blockN]=F
+        elif PACK[0]+1==256 and PACK[3]==200:
+            F=Frame3(K.ID,P,PACK) 
+            BLKSET3[F.blockN]=F
+        elif PACK[0]+1==256 and PACK[3]==201:
+            F=Frame4(K.ID,P,PACK) 
+            BLKSET4[F.blockN]=F
         else:
             F=Frame(K.ID,P,PACK)
         print '\n%s'%F
@@ -498,6 +523,7 @@ for K in [K1,K2,K3]:
 print >>HTML1,Frame1.HTMLHEADER
 print >>HTML2,Frame2.HTMLHEADER
 print >>HTML3,Frame3.HTMLHEADER
+print >>HTML4,Frame4.HTMLHEADER
 
 for B in sorted(BLKSET1.keys()):
     BLK=BLKSET1[B]
@@ -514,6 +540,14 @@ print >>HTML2,Frame2.HTMLFOOTER
 for B in sorted(BLKSET2.keys()):
     BLK=BLKSET2[B]
     print >>HTML2,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
+
+for B in sorted(BLKSET3.keys()):
+    BLK=BLKSET3[B]
+    print >>HTML3,BLK.html()
+print >>HTML3,Frame3.HTMLFOOTER
+for B in sorted(BLKSET3.keys()):
+    BLK=BLKSET3[B]
+    print >>HTML3,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
 
 print >>HTML1,'</html>'
 print >>HTML2,'</html>'
