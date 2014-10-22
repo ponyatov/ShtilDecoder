@@ -15,6 +15,7 @@ try:
 except IndexError:
     DATDIR='dat/3' 
     DATDIR = r'\\arhive\Public\Arseniy\Штиль-М\06 прот'
+    DATDIR = r'\\arhive\Public\Arseniy\Shtil Decoder\3'
 
 # маска имени файла
 DATFILEMASK = '%s/374ШИМП_%i (%i)(K).dat'
@@ -33,6 +34,8 @@ CHBT={
 # выходные файлы с отчетами, открывать в Excel или браузере
 HTML1 = open('%s/kadr1.html'%DATDIR,'w')
 HTML2 = open('%s/kadr2.html'%DATDIR,'w')
+HTML3 = open('%s/kadr3.html'%DATDIR,'w')
+HTML4 = open('%s/kadr4.html'%DATDIR,'w')
 HTMLS = open('%s/stat.html'%DATDIR,'w')
 
 ######################################################
@@ -44,6 +47,8 @@ import os,time,re,math
 
 print >>HTML1,'<html><title>Кадр 1: %s</title>'%DATDIR
 print >>HTML2,'<html><title>Кадр 2: %s</title>'%DATDIR
+print >>HTML3,'<html><title>Кадр 3: %s</title>'%DATDIR
+print >>HTML4,'<html><title>Кадр 4: %s</title>'%DATDIR
 print >>HTMLS,'<html><title>Статистика: %s</title>'%DATDIR
 
 print time.localtime()[:6],sys.argv
@@ -91,11 +96,12 @@ class BrokkenStatistics:
             T='<tr bgcolor="#FFFFAA">'
         else:
             x=i
+            if x==256: x=3
             T='<tr>'
         obs=self.dat[i,'obs']
         bit=self.dat[i,'bit']
         proc=100*float(bit)/obs
-        T+='<td>%s</td>'%x
+        T+='<td><a href="kadr%s.html">%s</a></td>'%(x,x)
         T+='<td>%s</td>'%obs
         T+='<td>%s</td><td>%.1f%%</td><td>%.1f%%</td>'%(bit,proc,100-proc/2)
         T+='</tr>\n'
@@ -288,7 +294,8 @@ plot '-' w l lt -1 lw 2 """%(DATDIR,TNS)
         print >>T,''
         T.close()
         CMD=r'%s "%s"'%(GNUPLOT,TN) ; print CMD
-        os.system(CMD) ; os.remove(TN)
+#         os.system(CMD) 
+        os.remove(TN)
         return '<td><img src="%s.png" alt="%s %s %s %s %s %s"></td>'%(\
         TNS,\
         self.SK1,self.SK2,self.SK3,self.SK4,self.SK5,self.SK6)
@@ -330,6 +337,34 @@ class Frame:
     def CRC(self): return sum(self.DAT[:-2])
     HTMLFOOTER='</table>'
     HEADBGCOLOR='#DDDDFF'
+
+class Frame3(Frame):
+    'пакет тип кадр3'
+    HTMLHEADER='''
+<H1>Кадр 3</H1>
+<table cellpadding=5 border=1>
+<tr bgcolor='''+Frame.HEADBGCOLOR+'''>
+<td>Номер<br>блока</td>
+<td>Время</td>
+<td>№ подблока</td>
+<td>Отсчеты АЦП</td>
+</tr>
+'''
+# <tr bgcolor=#AAFFAA>
+# <td colspan=3>DM1</td>
+# <td colspan=3>DM2</td>
+# </tr>
+# <tr bgcolor=#AAFFAA>
+# <td>min</td>
+# <td>среднее</td>
+# <td>max</td>
+# <td>X</td>
+# <td>Y</td>
+# <td>Z</td>
+# <td>X</td>
+# <td>Y</td>
+# <td>Z</td>
+# </tr>
 
 class Frame2(Frame):
     'пакет тип кадр2'
@@ -462,6 +497,7 @@ for K in [K1,K2,K3]:
 
 print >>HTML1,Frame1.HTMLHEADER
 print >>HTML2,Frame2.HTMLHEADER
+print >>HTML3,Frame3.HTMLHEADER
 
 for B in sorted(BLKSET1.keys()):
     BLK=BLKSET1[B]
@@ -481,6 +517,8 @@ for B in sorted(BLKSET2.keys()):
 
 print >>HTML1,'</html>'
 print >>HTML2,'</html>'
+print >>HTML3,'</html>'
+print >>HTML4,'</html>'
 print >>HTMLS,'<pre>%s</pre>'%STATBROK
 
-print STATBROK
+print '.'
