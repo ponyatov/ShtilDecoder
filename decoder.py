@@ -23,7 +23,7 @@ DATFILEMASK = '%s/374ШИМП_%i (%i)(K).dat'
 # расположение бинарника GnuGlot
 GNUPLOT = r'gnuplot\gnuplot.exe' 
 
-CHBT={
+BitMap={
 # разбитовка каналов: байт 76543210
 #        0      1      2      3      4      5      6      7
 'K1':[(1,8 ),(1,7 ),(1,6 ),(1,5 ),(1,4 ),(1,3 ),(1,2 ),(1,1 )],
@@ -37,6 +37,9 @@ HTML2 = open('%s/kadr2.html'%DATDIR,'w')
 HTML3 = open('%s/kadr3.html'%DATDIR,'w')
 HTML4 = open('%s/kadr4.html'%DATDIR,'w')
 HTMLS = open('%s/stat.html'%DATDIR,'w')
+K1LOG = open('%s/K1.html'%DATDIR,'w')
+K2LOG = open('%s/K2.html'%DATDIR,'w')
+K3LOG = open('%s/K3.html'%DATDIR,'w')
 
 ######################################################
 
@@ -50,6 +53,9 @@ print >>HTML2,'<html><title>Кадр 2: %s</title>'%DATDIR
 print >>HTML3,'<html><title>Кадр 3: %s</title>'%DATDIR
 print >>HTML4,'<html><title>Кадр 4: %s</title>'%DATDIR
 print >>HTMLS,'<html><title>Статистика: %s</title>'%DATDIR
+print >>K1LOG,'<html>'
+print >>K2LOG,'<html>'
+print >>K3LOG,'<html>'
 
 print time.localtime()[:6],sys.argv
 print '\nDATDIR "%s"\n'%DATDIR
@@ -58,9 +64,15 @@ print 'DATFILEMASK "%s"\n'%DATFILEMASK
 def dump(dat):
     'функция вывода кекс-дампа'
     T=''
+    # hex
     for addr in range(len(dat)):
         if addr%0x10==0: T+='\n%.4X\t'%addr
-        T+='%.2X '%dat[addr]
+        T+='%.2X  '%dat[addr]
+    T+='\n'+'*'*20+'\n'
+    # dec
+    for addr in range(len(dat)):
+        if addr%0x10==0: T+='\n%.4i\t'%addr
+        T+='%.3i '%dat[addr]
     return T
 
 class BrokkenStatistics:
@@ -114,7 +126,7 @@ STATBROK=BrokkenStatistics()
 
 ############################
 
-class Channel:
+class BitStream:
     '1-битный канал'
     def __init__(self,i,j):
         # генерация имени .dat-файлов по маске
@@ -127,7 +139,7 @@ class Channel:
         # генерация списка битов
         self.dat = map(lambda x:int(x.split()[1]),Records)
     def __str__(self):
-        return 'Канал %i:%i\t%s\t[%i]'%(\
+        return 'БитПоток %i:%i\t%s\t[%i]'%(\
             self.i,self.j,\
             self.DatFileName,\
             len(self))
@@ -139,12 +151,12 @@ class Channel:
 DAT={}
 for i in [1,2]:
     for j in range(1,12+1):
-        DAT[(i,j)]=Channel(i,j)
+        DAT[(i,j)]=BitStream(i,j)
         print DAT[(i,j)] 
 
 ############################
 
-class ByteStream:
+class Channel:
     'поток байтовых данных'
     def __init__(self,ID,BT):
         self.ID=ID
@@ -163,14 +175,29 @@ class ByteStream:
         for i in range(len(self.DAT)-31):
             if self.DAT[i+1:i+3]==[0x55,0xAA]:
                 self.INDEX+=[i]
-    def __str__(self): return 'Поток %s: %s'%(self.ID,self.BT)
+    def __str__(self):
+        return 'Канал %s [%i байт, %i пакетов]'%(self.ID,self.SZ,len(self.INDEX))
+    def html(self):
+        T='<H1>%s</H1>'%self
+        T+='<table border=1 cellpadding=3>\n'
+        for i in self.INDEX:
+            T+='<tr><td>%s:</td>'%i
+            for a in self.DAT[i:i+32]: T+='<td>%s</td>'%a
+            T+='</tr>\n'
+        T+='</table>\n'
+        return T
     def packages(self): return self.INDEX
     def package(self,addr): return self.DAT[addr:addr+32]
+#     def __iter__(self): return self.INDEX
 
 print
-K1=ByteStream('K1',CHBT['K1']) ; print K1
-K2=ByteStream('K2',CHBT['K2']) ; print K2
-K3=ByteStream('K3',CHBT['K3']) ; print K3
+K1=Channel('K1',BitMap['K1']) ; print K1 ; print >>K1LOG,K1.html()
+K2=Channel('K2',BitMap['K2']) ; print K2 ; print >>K2LOG,K2.html()
+K3=Channel('K3',BitMap['K3']) ; print K3 ; print >>K3LOG,K3.html()
+
+for P in K1:
+    print >>HTML1,'%s<BR>'%P
+sys.exit(0)
 
 ############# вспомогательные функции ###############
 
