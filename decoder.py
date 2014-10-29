@@ -64,15 +64,10 @@ print 'DATFILEMASK "%s"\n'%DATFILEMASK
 def dump(dat):
     'функция вывода кекс-дампа'
     T=''
-    # hex
     for addr in range(len(dat)):
-        if addr%0x10==0: T+='\n%.4X\t'%addr
-        T+='%.2X  '%dat[addr]
-    T+='\n'+'*'*20+'\n'
-    # dec
-    for addr in range(len(dat)):
-        if addr%0x10==0: T+='\n%.4i\t'%addr
-        T+='%.3i '%dat[addr]
+        if addr%0x10==0: T+='\n%.4X: '%addr
+        T+='%.2X '%dat[addr]
+    T+='\n'
     return T
 
 class BrokkenStatistics:
@@ -156,6 +151,38 @@ for i in [1,2]:
 
 ############################
 
+class Package:
+    def __init__(self,CH,ADDR,DAT):
+        self.CH=CH
+        self.ADDR=ADDR
+        self.DAT=DAT
+        try:
+            self.Type = {0:1,1:2,2:3,255:4}[self.DAT[0]]
+        except KeyError:
+            self.Type = self.DAT[0]
+        self.N = self.DAT[3]
+        self.CRC_H = self.DAT[30]
+        self.CRC_L = self.DAT[31]
+        self.OK = self.isValid()
+    def __str__(self):
+        T='\n<a name="%s">Пакет %s@%s\n'%(self.ADDR,self.ADDR,self.CH)
+        T+='-'*40+dump(self.DAT)+'-'*40+'\n'
+        T+='сигнатура: %s\n'%self.DAT[:3]
+        T+='тип: %s\n'%self.Type
+        T+='CRC_H: %s\n'%self.CRC_H
+        T+='CRC_L: %s\n'%self.CRC_L
+        T+='валидность: %s\n'%self.OK
+        T+='-'*40+'\n\n'
+        return T
+    def html(self):
+        T='<tr bgcolor="%s">'%({True:"lightgreen",False:"yellow"}[self.OK])
+        T+='<td><a href="#%s">#%s</a></td>'%(self.ADDR,self.ADDR)
+        T+=reduce(lambda a,b:a+b,map(lambda x:'<td>%s</td>'%x,self.DAT))
+        T+='</tr>\n'
+        return T
+    def isValid(self): return self.CRC()==(self.CRC_H<<8)|self.CRC_L
+    def CRC(self): return sum(self.DAT[:-2])
+
 class Channel:
     'поток байтовых данных'
     def __init__(self,ID,BT):
@@ -169,6 +196,14 @@ class Channel:
                 byte=byte*2+DAT[BT[bit]][i]
             self.DAT+=[byte]
         self.packindex()
+        self.PACKS=[]
+        for a in self.INDEX:
+            self.PACKS.append(
+                Package(
+                    self.ID,
+                    a,
+                    self.package(a)
+                )) 
     def packindex(self):
         'перестроение индекса пакетов'
         self.INDEX=[]
@@ -178,25 +213,25 @@ class Channel:
     def __str__(self):
         return 'Канал %s [%i байт, %i пакетов]'%(self.ID,self.SZ,len(self.INDEX))
     def html(self):
-        T='<H1>%s</H1>'%self
+        T='<title>%s</title><H1>%s</H1>\n'%(self,self)
         T+='<table border=1 cellpadding=3>\n'
-        for i in self.INDEX:
-            T+='<tr><td>%s:</td>'%i
-            for a in self.DAT[i:i+32]: T+='<td>%s</td>'%a
-            T+='</tr>\n'
+        for P in self.PACKS: T+=P.html()
         T+='</table>\n'
+        for P in self.PACKS: T+='<pre>%s</pre>'%P
         return T
-    def packages(self): return self.INDEX
+    def packages(self): return self.PACKS
     def package(self,addr): return self.DAT[addr:addr+32]
-#     def __iter__(self): return self.INDEX
+    def __iter__(self): return iter(self.INDEX)
 
 print
 K1=Channel('K1',BitMap['K1']) ; print K1 ; print >>K1LOG,K1.html()
 K2=Channel('K2',BitMap['K2']) ; print K2 ; print >>K2LOG,K2.html()
 K3=Channel('K3',BitMap['K3']) ; print K3 ; print >>K3LOG,K3.html()
 
-for P in K1:
-    print >>HTML1,'%s<BR>'%P
+# print >>K1LOG,'<table border=1 cellpadding=2>'
+# for P in K1.packages():
+#     print >>K1LOG,Package(K1.package(P)).html()
+# print >>K1LOG,'</table>'
 sys.exit(0)
 
 ############# вспомогательные функции ###############
