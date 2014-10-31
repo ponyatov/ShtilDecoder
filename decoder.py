@@ -160,15 +160,6 @@ for i in [1,2]:
 # вспомогательные функции
 ############################
 
-def BF(dat,base,bitdef):
-    'разбор битовых полей'
-    N=0
-    for i in bitdef:
-        BYTE,BITS=i ; BYTE-=base
-        for b in range(BITS[0],BITS[1]+1):
-            N=(N<<1)|(dat[BYTE]>>(8-b))&1
-    return N
-
 def HD(dat):
     'hexdump списка'
     return '[%s]'%(\
@@ -186,15 +177,16 @@ class Signatura:
 
 class AnyTime:
     'метка времени'
-    def __init__(self,dat):
-        assert len(dat)==4
-        self.DAT=dat
-        self.SEC= BF(dat,4,[(4,(0,5))])
-        self.MIN= BF(dat,4,[(4,(6,7)),(5,(0,3))])
-        self.HOUR=BF(dat,4,[(5,(4,7)),(6,(0,0))])
-        self.DAYS=BF(dat,4,[(6,(1,7)),(7,(0,7))])
-    def __str__(self): return '%.2i:%.2i:%.2i:%.2i'%(\
-            self.DAYS,self.HOUR,self.MIN,self.SEC)
+    def __init__(self,DAT):
+        assert len(DAT)==4
+        self.DAT=DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a,b:a<<8|b,D)
+        self.SEC =N&0b111111 ; N=N>>6
+        self.MIN =N&0b111111 ; N=N>>6
+        self.HOUR=N&0b11111  ; N=N>>5
+        self.DAYS=N
+    def __str__(self): return '%.2i:%.2i:%.2i:%.2i %s'%(\
+            self.DAYS,self.HOUR,self.MIN,self.SEC,HD(self.DAT))
 class ShtyrTime(AnyTime):
     'Время Штиля'
 class BSKVU(AnyTime):
@@ -202,12 +194,13 @@ class BSKVU(AnyTime):
 
 class MagnetField:
     'магнитное поле'
-    def __init__(self,dat):
-        assert len(dat)==5
-        self.DAT=dat
-        self.X =BF(dat,16,[(16,(0,7)),(17,(0,3))])
-        self.Y =BF(dat,16,[(17,(4,7)),(18,(0,7))])
-        self.Z =BF(dat,16,[(19,(0,7)),(20,(0,7))])
+    def __init__(self,DAT):
+        assert len(DAT)==5
+        self.DAT=DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a,b:a<<8|b,D)
+        self.X = N&0b111111111111 ; N=N>>12
+        self.Y = N&0b111111111111 ; N=N>>12
+        self.Z = N&0b111111111111
     def __str__(self): 
         return 'X:%i Y:%i Z:%i'%(\
             self.X,self.Y,self.Z)
@@ -219,12 +212,13 @@ class MagnetField:
 
 class Termo:
     'Температура'
-    def __init__(self,dat):
-        assert len(dat)==4
-        self.DAT=dat
-        self.DM1 =BF(dat,26,[(26,(0,7)),(27,(0,3))])
-        self.DM2 =BF(dat,26,[(27,(4,7)),(28,(0,7))])
-        self.SHT =BF(dat,26,[(29,(0,7))])
+    def __init__(self,DAT):
+        assert len(DAT)==4
+        self.DAT=DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a,b:a<<8|b,D)
+        self.DM1=N&0b111111111111 ; N=N>>12
+        self.DM2=N&0b111111111111 ; N=N>>12
+        self.SHT=N&0b11111111
     def __str__(self): 
         return '%s\tDM1:%i DM2:%i SHT:%i'%(HD(self.DAT),\
             self.DM1,self.DM2,self.SHT)
@@ -235,11 +229,14 @@ class Upit:
     'Напряжения питания'
     def __init__(self,DAT):
         assert len(DAT)==4
-        self.DAT=DAT
-    def __str__(self): return HD(self.DAT)
-#         self.MIN=0.0
-#         self.MED=0.0
-#         self.MAX=0.0
+        self.DAT=DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a,b:a<<8|b,D)
+        self.MIN=N&0b1111111111 ; N=N>>10
+        self.MAX=N&0b1111111111 ; N=N>>10
+        self.MED=N&0b1111111111
+    def __str__(self): 
+        return '%s %s %s %s'%(
+            self.MIN,self.MAX,self.MED,HD(self.DAT))
 #     def html(self): return '<td>%.2f</td><td>%.2f</td><td>%.2f</td>'%(\
 #         self.MIN,self.MED,self.MAX)
 
@@ -248,15 +245,19 @@ class Shina:
     def __init__(self,N,DAT):
         assert len(DAT)==29-18+1
         self.N = N
-        self.DAT = DAT
-    def __str__(self): return HD(self.DAT)
-#         self.SK1=BF(dat,18,[(18,(0,7)),(19,(0,1))])
-#         self.SK2=BF(dat,18,[(20,(0,7)),(21,(0,1))])
-#         self.SK3=BF(dat,18,[(22,(0,7)),(23,(0,1))])
-#         self.SK4=BF(dat,18,[(24,(0,7)),(25,(0,1))])
-#         self.SK5=BF(dat,18,[(26,(0,7)),(27,(0,1))])
-#         self.SK6=BF(dat,18,[(28,(0,7)),(29,(0,1))])
-        
+        self.DAT=DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a,b:a<<8|b,D)
+        self.SK1=N&0b1111111111 ; N=N>>16
+        self.SK2=N&0b1111111111 ; N=N>>16
+        self.SK3=N&0b1111111111 ; N=N>>16
+        self.SK4=N&0b1111111111 ; N=N>>16
+        self.SK5=N&0b1111111111 ; N=N>>16
+        self.SK6=N&0b1111111111
+    def __str__(self): 
+        return '%s %s %s %s %s %s %s'%(
+            self.SK1,self.SK2,self.SK3,
+            self.SK4,self.SK5,self.SK6,
+            HD(self.DAT))
 
 ############################
 # классы пакетов
