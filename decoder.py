@@ -337,8 +337,9 @@ class Report12(Report):
     def html(self):
         T=self.HTMLTABLEHEAD
         for i in sorted(self.dat.keys()):
-            T+='<tr><td>%s</td>'%i
+            T+='<tr><td>%s:%s</td>'%i
             # BSKVU
+            T+=self.htd(i,'TST','Valid1')
             T+=self.htd(i,'BSKVU1','Valid1')
             T+=self.htd(i,'BSKVU2','Valid1')
             # DMax
@@ -352,20 +353,20 @@ class Report12(Report):
             T+=self.htd(i,'2DM1X','Valid2')
             T+=self.htd(i,'2DM1Y','Valid2')
             T+=self.htd(i,'2DM1Z','Valid2')
-            T+=self.htd(i,'','Valid2')
-            T+=self.htd(i,'','Valid2')
-            T+=self.htd(i,'','Valid2')
-#             # Upit
-#             T+=self.htd('','Valid2')
-#             T+=self.htd('','Valid2')
-#             T+=self.htd('','Valid2')
-#             # Ush
-#             T+=self.htd('','Valid2')
-#             T+=self.htd('','Valid2')
-#             T+=self.htd('','Valid2')
-#             T+=self.htd('','Valid2')
-#             T+=self.htd('','Valid2')
-#             T+=self.htd('','Valid2')
+            T+=self.htd(i,'2DM2X','Valid2')
+            T+=self.htd(i,'2DM2Y','Valid2')
+            T+=self.htd(i,'2DM2Z','Valid2')
+            # Upit
+            T+=self.htd(i,'UMIN','Valid2')
+            T+=self.htd(i,'UMAX','Valid2')
+            T+=self.htd(i,'UMED','Valid2')
+            # Ush
+            T+=self.htd(i,'U1','Valid2')
+            T+=self.htd(i,'U2','Valid2')
+            T+=self.htd(i,'U3','Valid2')
+            T+=self.htd(i,'U4','Valid2')
+            T+=self.htd(i,'U5','Valid2')
+            T+=self.htd(i,'U6','Valid2')
             ##
             T+='</tr>\n'
         T+='</table>\n'
@@ -374,13 +375,14 @@ class Report12(Report):
 <table border=1 cellpadding=3>
 <tr bgcolor="lightblue">
 <td rowspan=2>#</td>
-<td colspan=2>Время</td>
+<td colspan=3>Время</td>
 <td colspan=6>Максимальное значение<br>магнитного поля<br>в микроПопугаях</td>
 <td colspan=6>Текущее значение<br>магнитного поля<br>в микроПопугаях</td>
 <td colspan=3>Напряжение питания<br>мегаБолт</td>
 <td colspan=6>Напряжение шина-корпус<br>мегаБолт</td>
 </tr>
 <tr bgcolor="lightcyan">
+<td>Штыря</td>
 <td>БСКВУ1</td>
 <td>БСКВУ2</td>
 <td>X1</td><td>Y1</td><td>Z1</td>
@@ -407,15 +409,16 @@ class Package1(Package):
         self.DM2peak = MagnetField(self.DAT[21:25 + 1])
         self.Temp = Termo(self.DAT[26:29 + 1])
         # дополнение отчета
-        R12[self.N]['Valid1']=self.OK
-        R12[self.N]['BSKVU1']=self.BSKVU1.ts()
-        R12[self.N]['BSKVU2']=self.BSKVU2.ts()
-        R12[self.N]['1DM1X']=self.DM1peak.X
-        R12[self.N]['1DM1Y']=self.DM1peak.Y
-        R12[self.N]['1DM1Z']=self.DM1peak.Z
-        R12[self.N]['1DM2X']=self.DM2peak.X
-        R12[self.N]['1DM2Y']=self.DM2peak.Y
-        R12[self.N]['1DM2Z']=self.DM2peak.Z
+        R12[self.CH,self.N]['Valid1']=self.OK
+        R12[self.CH,self.N]['TST']=self.time.ts()
+        R12[self.CH,self.N]['BSKVU1']=self.BSKVU1.ts()
+        R12[self.CH,self.N]['BSKVU2']=self.BSKVU2.ts()
+        R12[self.CH,self.N]['1DM1X']=self.DM1peak.X
+        R12[self.CH,self.N]['1DM1Y']=self.DM1peak.Y
+        R12[self.CH,self.N]['1DM1Z']=self.DM1peak.Z
+        R12[self.CH,self.N]['1DM2X']=self.DM2peak.X
+        R12[self.CH,self.N]['1DM2Y']=self.DM2peak.Y
+        R12[self.CH,self.N]['1DM2Z']=self.DM2peak.Z
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
@@ -439,10 +442,22 @@ class Package2(Package):
         self.DM2 = MagnetField(self.DAT[13:17 + 1])
         self.SHINA = Shina(self.N, self.DAT[18:29 + 1]) 
         # дополнение отчета
-        R12[self.N]['Valid2']=self.OK
-        R12[self.N]['2DM1X']=self.DM1.X
-        R12[self.N]['2DM1Y']=self.DM1.Y
-        R12[self.N]['2DM1Z']=self.DM1.Z
+        R12[self.CH,self.N]['Valid2']=self.OK
+        R12[self.CH,self.N]['2DM1X']=self.DM1.X
+        R12[self.CH,self.N]['2DM1Y']=self.DM1.Y
+        R12[self.CH,self.N]['2DM1Z']=self.DM1.Z
+        R12[self.CH,self.N]['2DM2X']=self.DM2.X
+        R12[self.CH,self.N]['2DM2Y']=self.DM2.Y
+        R12[self.CH,self.N]['2DM2Z']=self.DM2.Z
+        R12[self.CH,self.N]['UMIN']=self.Upit.MIN
+        R12[self.CH,self.N]['UMAX']=self.Upit.MAX
+        R12[self.CH,self.N]['UMED']=self.Upit.MED
+        R12[self.CH,self.N]['U1']=self.SHINA.SK1
+        R12[self.CH,self.N]['U2']=self.SHINA.SK2
+        R12[self.CH,self.N]['U3']=self.SHINA.SK3
+        R12[self.CH,self.N]['U4']=self.SHINA.SK4
+        R12[self.CH,self.N]['U5']=self.SHINA.SK5
+        R12[self.CH,self.N]['U6']=self.SHINA.SK6
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
