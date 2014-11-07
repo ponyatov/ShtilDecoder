@@ -178,38 +178,40 @@ def HD(dat):
 
 class Signatura:
     'Заголовок'
-    def __init__(self,DAT): self.DAT=DAT
+    def __init__(self, DAT): self.DAT = DAT
     def __str__(self): return HD(self.DAT)
 
 class AnyTime:
     'метка времени'
-    def __init__(self,DAT):
-        assert len(DAT)==4
-        self.DAT=DAT ; D = DAT ; D.reverse()
-        N = reduce(lambda a,b:a<<8|b,D)
-        self.SEC =N&0b111111 ; N=N>>6
-        self.MIN =N&0b111111 ; N=N>>6
-        self.HOUR=N&0b11111  ; N=N>>5
-        self.DAYS=N
-    def __str__(self): return '%.2i:%.2i:%.2i:%.2i %s'%(\
-            self.DAYS,self.HOUR,self.MIN,self.SEC,HD(self.DAT))
+    def __init__(self, DAT):
+        assert len(DAT) == 4
+        self.DAT = DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a, b:a << 8 | b, D)
+        self.SEC = N & 0b111111 ; N = N >> 6
+        self.MIN = N & 0b111111 ; N = N >> 6
+        self.HOUR = N & 0b11111  ; N = N >> 5
+        self.DAYS = N
+    def __str__(self): return '%.2i:%.2i:%.2i:%.2i %s' % (\
+            self.DAYS, self.HOUR, self.MIN, self.SEC, HD(self.DAT))
+
 class ShtyrTime(AnyTime):
     'Время Штиля'
+
 class BSKVU(AnyTime):
     'Фремя БСКВУ'
 
 class MagnetField:
     'магнитное поле'
-    def __init__(self,DAT):
-        assert len(DAT)==5
-        self.DAT=DAT ; D = DAT ; D.reverse()
-        N = reduce(lambda a,b:a<<8|b,D)
-        self.X = N&0b111111111111 ; N=N>>12
-        self.Y = N&0b111111111111 ; N=N>>12
-        self.Z = N&0b111111111111
+    def __init__(self, DAT):
+        assert len(DAT) == 5
+        self.DAT = DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a, b:a << 8 | b, D)
+        self.X = N & 0b111111111111 ; N = N >> 12
+        self.Y = N & 0b111111111111 ; N = N >> 12
+        self.Z = N & 0b111111111111
     def __str__(self): 
-        return 'X:%i Y:%i Z:%i'%(\
-            self.X,self.Y,self.Z)
+        return 'X:%i Y:%i Z:%i' % (\
+            self.X, self.Y, self.Z)
 #     def module(self):
 #         return math.sqrt(self.X**2+self.Y**2+self.Z**2) 
 #     def html(self): 
@@ -218,51 +220,51 @@ class MagnetField:
 
 class Termo:
     'Температура'
-    def __init__(self,DAT):
-        assert len(DAT)==4
-        self.DAT=DAT ; D = DAT ; D.reverse()
-        N = reduce(lambda a,b:a<<8|b,D)
-        self.DM1=N&0b111111111111 ; N=N>>12
-        self.DM2=N&0b111111111111 ; N=N>>12
-        self.SHT=N&0b11111111
+    def __init__(self, DAT):
+        assert len(DAT) == 4
+        self.DAT = DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a, b:a << 8 | b, D)
+        self.DM1 = N & 0b111111111111 ; N = N >> 12
+        self.DM2 = N & 0b111111111111 ; N = N >> 12
+        self.SHT = N & 0b11111111
     def __str__(self): 
-        return '%s\tDM1:%i DM2:%i SHT:%i'%(HD(self.DAT),\
-            self.DM1,self.DM2,self.SHT)
+        return '%s\tDM1:%i DM2:%i SHT:%i' % (HD(self.DAT), \
+            self.DM1, self.DM2, self.SHT)
 #     def html(self): return '<td>%s</td><td>%s</td><td>%s</td>'%(\
 #             self.DM1,self.DM2,self.SHT)
 
 class Upit:
     'Напряжения питания'
-    def __init__(self,DAT):
-        assert len(DAT)==4
-        self.DAT=DAT ; D = DAT ; D.reverse()
-        N = reduce(lambda a,b:a<<8|b,D)
-        self.MIN=N&0b1111111111 ; N=N>>10
-        self.MAX=N&0b1111111111 ; N=N>>10
-        self.MED=N&0b1111111111
+    def __init__(self, DAT):
+        assert len(DAT) == 4
+        self.DAT = DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a, b:a << 8 | b, D)
+        self.MIN = N & 0b1111111111 ; N = N >> 10
+        self.MAX = N & 0b1111111111 ; N = N >> 10
+        self.MED = N & 0b1111111111
     def __str__(self): 
-        return '%s %s %s %s'%(
-            self.MIN,self.MAX,self.MED,HD(self.DAT))
+        return '%s %s %s %s' % (
+            self.MIN, self.MAX, self.MED, HD(self.DAT))
 #     def html(self): return '<td>%.2f</td><td>%.2f</td><td>%.2f</td>'%(\
 #         self.MIN,self.MED,self.MAX)
 
 class Shina:
     'Шина-Корпус'
-    def __init__(self,N,DAT):
-        assert len(DAT)==29-18+1
+    def __init__(self, N, DAT):
+        assert len(DAT) == 29 - 18 + 1
         self.N = N
-        self.DAT=DAT ; D = DAT ; D.reverse()
-        N = reduce(lambda a,b:a<<8|b,D)
-        self.SK1=N&0b1111111111 ; N=N>>16
-        self.SK2=N&0b1111111111 ; N=N>>16
-        self.SK3=N&0b1111111111 ; N=N>>16
-        self.SK4=N&0b1111111111 ; N=N>>16
-        self.SK5=N&0b1111111111 ; N=N>>16
-        self.SK6=N&0b1111111111
+        self.DAT = DAT ; D = DAT ; D.reverse()
+        N = reduce(lambda a, b:a << 8 | b, D)
+        self.SK1 = N & 0b1111111111 ; N = N >> 16
+        self.SK2 = N & 0b1111111111 ; N = N >> 16
+        self.SK3 = N & 0b1111111111 ; N = N >> 16
+        self.SK4 = N & 0b1111111111 ; N = N >> 16
+        self.SK5 = N & 0b1111111111 ; N = N >> 16
+        self.SK6 = N & 0b1111111111
     def __str__(self): 
-        return '%s %s %s %s %s %s %s'%(
-            self.SK1,self.SK2,self.SK3,
-            self.SK4,self.SK5,self.SK6,
+        return '%s %s %s %s %s %s %s' % (
+            self.SK1, self.SK2, self.SK3,
+            self.SK4, self.SK5, self.SK6,
             HD(self.DAT))
 
 ############################
@@ -271,15 +273,15 @@ class Shina:
 
 class Package:
     'пакет общий код'
-    def __init__(self,CH,ADDR,DAT):
+    def __init__(self, CH, ADDR, DAT):
         self.CH = CH
         self.ADDR = ADDR
         self.DAT = DAT
         # декодирование с выделением срезов из списка байт
-        self.SIGN = Signatura( self.DAT[0:3] )
+        self.SIGN = Signatura(self.DAT[0:3])
         self.N = self.DAT[3]
         try:
-            self.Type = {0:1,1:2,2:3,255:4}[self.DAT[0]]
+            self.Type = {0:1, 1:2, 2:3, 255:4}[self.DAT[0]]
         except KeyError:
             self.Type = self.DAT[0]
         self.N = self.DAT[3]
@@ -287,67 +289,80 @@ class Package:
         self.CRC_L = self.DAT[31]
         self.OK = self.isValid()
     def __str__(self):
-        T='\n<a name="%s">Пакет %s@%s\n'%(self.ADDR,self.ADDR,self.CH)
-        T+='-'*40+dump(self.DAT)+'-'*40+'\n'
-        T+='сигнатура: %s\n'%self.SIGN
-        T+='# блока: %s\n'%self.N
-        T+='тип: %s\n'%self.Type
-        T+='CRC_H: %s\n'%self.CRC_H
-        T+='CRC_L: %s\n'%self.CRC_L
-        T+='валидность: %s\n'%self.OK
-        T+='-'*40+'\n'
+        T = '\n<a name="%s">Пакет %s@%s\n' % (self.ADDR, self.ADDR, self.CH)
+        T += '-' * 40 + dump(self.DAT) + '-' * 40 + '\n'
+        T += 'сигнатура: %s\n' % self.SIGN
+        T += '# блока: %s\n' % self.N
+        T += 'тип: %s\n' % self.Type
+        T += 'CRC_H: %s\n' % self.CRC_H
+        T += 'CRC_L: %s\n' % self.CRC_L
+        T += 'валидность: %s\n' % self.OK
+        T += '-' * 40 + '\n'
         return T
     def html(self):
-        T='<tr bgcolor="%s">'%({True:"lightgreen",False:"yellow"}[self.OK])
-        T+='<td><a href="#%s">#%s</a></td>'%(self.ADDR,self.ADDR)
-        T+=reduce(lambda a,b:a+b,map(lambda x:'<td>%s</td>'%x,self.DAT))
-        T+='</tr>\n'
+        T = '<tr bgcolor="%s">' % ({True:"lightgreen", False:"yellow"}[self.OK])
+        T += '<td><a href="#%s">#%s</a></td>' % (self.ADDR, self.ADDR)
+        T += reduce(lambda a, b:a + b, map(lambda x:'<td>%s</td>' % x, self.DAT))
+        T += '</tr>\n'
         return T
-    def isValid(self): return self.CRC()==(self.CRC_H<<8)|self.CRC_L
+    def isValid(self): return self.CRC() == (self.CRC_H << 8) | self.CRC_L
     def CRC(self): return sum(self.DAT[:-2])
+    
+class Report12:
+    'Отчет по пакетам 1/2'
+    def __init__(self): self.dat=[]
+    def __len__(self): return len(self.dat)
+    def __str__(self): return 'Отчет по кадрам 1/2'
+    def html(self):
+        T='<table border=1 cellpadding=3>\n'
+        for i in range(len(self)):
+            T+=self[i].html()
+        T+='</table>\n'
+        return T
+R12 = Report12()     
     
 class Package1(Package):
     'пакет тип кадр1'
-    def __init__(self,CH, ADDR, DAT):
+    def __init__(self, CH, ADDR, DAT):
         # вызов конструктора суперкласса
         Package.__init__(self, CH, ADDR, DAT)
         # декодирование полей специфичных для кадра1
-        self.time    =ShtyrTime(  self.DAT[4:7+1])
-        self.BSKVU1  =BSKVU(      self.DAT[8:11+1])
-        self.BSKVU2  =BSKVU(      self.DAT[12:15+1])
-        self.DM1peak =MagnetField(self.DAT[16:20+1])
-        self.DM2peak =MagnetField(self.DAT[21:25+1])
-        self.Temp    =Termo(      self.DAT[26:29+1])
+        self.time = ShtyrTime(self.DAT[4:7 + 1])
+        self.BSKVU1 = BSKVU(self.DAT[8:11 + 1])
+        self.BSKVU2 = BSKVU(self.DAT[12:15 + 1])
+        self.DM1peak = MagnetField(self.DAT[16:20 + 1])
+        self.DM2peak = MagnetField(self.DAT[21:25 + 1])
+        self.Temp = Termo(self.DAT[26:29 + 1])
     def __str__(self):
         # вызов дампера суперкласса
-        T=Package.__str__(self)
-        T+='время Штыря: %s\n'%self.time
-        T+='время БСКВУ1: %s\n'%self.BSKVU1
-        T+='время БСКВУ2: %s\n'%self.BSKVU2
-        T+='Пик DM1: %s\n'%self.DM1peak
-        T+='Пик DM2: %s\n'%self.DM2peak
-        T+='Температура: %s\n'%self.Temp
-        T+='-'*40+'\n'
+        T = Package.__str__(self)
+        T += 'время Штыря: %s\n' % self.time
+        T += 'время БСКВУ1: %s\n' % self.BSKVU1
+        T += 'время БСКВУ2: %s\n' % self.BSKVU2
+        T += 'Пик DM1: %s\n' % self.DM1peak
+        T += 'Пик DM2: %s\n' % self.DM2peak
+        T += 'Температура: %s\n' % self.Temp
+        T += '-' * 40 + '\n'
         return T
 
 class Package2(Package):
     'пакет тип кадр2'
-    def __init__(self,CH, ADDR, DAT):
+    def __init__(self, CH, ADDR, DAT):
         # вызов конструктора суперкласса
         Package.__init__(self, CH, ADDR, DAT)
         # декодирование полей специфичных для кадра2
-        self.Upit  = Upit(self.DAT[4:7+1])
-        self.DM1   = MagnetField(self.DAT[8:12+1]) 
-        self.DM2   = MagnetField(self.DAT[13:17+1])
-        self.SHINA = Shina(self.N,self.DAT[18:29+1]) 
+        self.Upit = Upit(self.DAT[4:7 + 1])
+        self.DM1 = MagnetField(self.DAT[8:12 + 1]) 
+        self.DM2 = MagnetField(self.DAT[13:17 + 1])
+        self.SHINA = Shina(self.N, self.DAT[18:29 + 1]) 
     def __str__(self):
         # вызов дампера суперкласса
-        T=Package.__str__(self)
-        T+='U питания: %s\n'%self.Upit
-        T+='DM1: %s\n'%self.DM1
-        T+='DM2: %s\n'%self.DM2
-        T+='Шина-Корпус: %s\n'%self.SHINA
-        T+='-'*40+'\n'
+        T = Package.__str__(self)
+        T += 'U питания: %s\n' % self.Upit
+        T += 'DM1: %s\n' % self.DM1
+        T += 'DM2: %s\n' % self.DM2
+        T += 'Шина-Корпус: %s\n' % self.SHINA
+        T += '-' * 40 + '\n'
         return T
 
 class Channel:
@@ -389,246 +404,10 @@ class Channel:
     def __iter__(self): return iter(self.INDEX)
 
 print
-K1 = Channel('K1', BitMap['K1']) ; print K1 ; K1LOG.SubTitle = K1 ; print >>K1LOG, K1.html()
-K2 = Channel('K2', BitMap['K2']) ; print K2 ; K2LOG.SubTitle = K1 ; print >>K2LOG, K2.html()
-K3 = Channel('K3', BitMap['K3']) ; print K3 ; K3LOG.SubTitle = K1 ; print >>K3LOG, K3.html()
+K1 = Channel('K1', BitMap['K1']) ; print K1 ; K1LOG.SubTitle = K1 ; print >> K1LOG, K1.html()
+K2 = Channel('K2', BitMap['K2']) ; print K2 ; K2LOG.SubTitle = K1 ; print >> K2LOG, K2.html()
+K3 = Channel('K3', BitMap['K3']) ; print K3 ; K3LOG.SubTitle = K1 ; print >> K3LOG, K3.html()
 
-# print >>K1LOG,'<table border=1 cellpadding=2>'
-# for P in K1.packages():
-#     print >>K1LOG,Package(K1.package(P)).html()
-# print >>K1LOG,'</table>'
+print R12 ; KADR12.SubTitle = R12 ; print >> KADR12, R12.html()
 
 print '.'
-
-# ############# классы полей кадра ###############
-# 
-#     def html(self):
-#         TNS='shina_%s'%self.blockN
-#         TN='%s/%s'%(DATDIR,TNS)
-#         T=open(TN,'w')
-#         print >>T,"""
-# set terminal png size 128,64
-# set output '%s/%s.png'
-# unset xtics
-# unset ytics
-# unset key
-# unset border
-# set bmargin 0
-# set yrange [0:500]
-# plot '-' w l lt -1 lw 2 """%(DATDIR,TNS)
-#         D=[self.SK1,self.SK2,self.SK3,self.SK4,self.SK5,self.SK6]
-#         for i in range(len(D)):
-#             print >>T,'%s\t%s'%(i,D[i])
-#         print >>T,''
-#         T.close()
-#         CMD=r'%s "%s"'%(GNUPLOT,TN) ; print CMD
-# #         os.system(CMD) 
-#         os.remove(TN)
-#         return '<td><img src="%s.png" alt="%s %s %s %s %s %s"></td>'%(\
-#         TNS,\
-#         self.SK1,self.SK2,self.SK3,self.SK4,self.SK5,self.SK6)
-# 
-# ############# класс кадра ###############
-# 
-# class Frame:
-#     def __init__(self,ch,addr,block):
-#         # накопление статистики
-#         STATBROK[('c','obs')] += 1
-#         STATBROK[(self.type,'obs')] += 1
-#         if not self.Valid: 
-#             STATBROK[('c','bit')] +=1
-#             STATBROK[(self.type,'bit')] +=1
-#     HTMLFOOTER='</table>'
-#     HEADBGCOLOR='#DDDDFF'
-# 
-# class Frame4(Frame):
-#     'пакет тип кадр4'
-#     def html(self): return '<tr><td>%s</td><td></td><td></td><td></td></tr>'%self.blockN
-#     HTMLHEADER='''
-# <H1>Кадр 4</H1>
-# <table cellpadding=5 border=1>
-# <tr bgcolor='''+Frame.HEADBGCOLOR+'''>
-# <td>Номер<br>блока</td>
-# <td>Время</td>
-# <td>Источник<br>сообщения</td>
-# <td>№ подблока</td>
-# <td>Отсчеты АЦП</td>
-# </tr>
-# '''
-# 
-# class Frame3(Frame):
-#     'пакет тип кадр3'
-#     def html(self): return '<tr><td>%s</td><td></td><td></td><td></td></tr>'%self.blockN
-#     HTMLHEADER='''
-# <H1>Кадр 3</H1>
-# <table cellpadding=5 border=1>
-# <tr bgcolor='''+Frame.HEADBGCOLOR+'''>
-# <td>Номер<br>блока</td>
-# <td>Время</td>
-# <td>№ подблока</td>
-# <td>Отсчеты АЦП</td>
-# </tr>
-# '''
-# # <tr bgcolor=#AAFFAA>
-# # <td colspan=3>DM1</td>
-# # <td colspan=3>DM2</td>
-# # </tr>
-# # <tr bgcolor=#AAFFAA>
-# # <td>min</td>
-# # <td>среднее</td>
-# # <td>max</td>
-# # <td>X</td>
-# # <td>Y</td>
-# # <td>Z</td>
-# # <td>X</td>
-# # <td>Y</td>
-# # <td>Z</td>
-# # </tr>
-# 
-# class Frame2(Frame):
-#     'пакет тип кадр2'
-#     def __init__(self,ch,addr,block):
-#         Frame.__init__(self, ch, addr, block)
-#         # декодирование с выделением срезов из списка байт
-#     def __str__(self):
-#         T=Frame.__str__(self)
-#         return T
-#     HTMLHEADER='''
-# <H1>Кадр 2</H1>
-# <table cellpadding=5 border=1>
-# <tr bgcolor='''+Frame.HEADBGCOLOR+'''>
-# <td rowspan=3>Номер<br>блока</td>
-# <td rowspan=2 colspan=3>U питания<br>в Болтах</td>
-# <td colspan=6>Магнитное поле в наноПопугаях</td>
-# <td rowspan=3>Шина<br>Корпус</td>
-# </tr>
-# <tr bgcolor=#AAFFAA>
-# <td colspan=3>DM1</td>
-# <td colspan=3>DM2</td>
-# </tr>
-# <tr bgcolor=#AAFFAA>
-# <td>min</td>
-# <td>среднее</td>
-# <td>max</td>
-# <td>X</td>
-# <td>Y</td>
-# <td>Z</td>
-# <td>X</td>
-# <td>Y</td>
-# <td>Z</td>
-# </tr>
-# '''
-#     def htmlValid(self): return {True:'',False:'bgcolor=#FFAAAA'}[self.Valid] 
-#     def html(self):
-#         return '''<tr %s><td><a href="#%i">%i</a></td>%s%s%s%s</tr>'''%(\
-#             self.htmlValid(),\
-#             self.blockN,self.blockN,\
-#             self.Upit.html(),\
-#             self.DM1.html(),self.DM2.html(),\
-#             self.SHINA.html()\
-#             )
-#     
-# class Frame1(Frame):
-#     def checksum(self,addr): return sum(self.DAT[0,29+1])
-#     def __str__(self):
-#         T=Frame.__str__(self)
-#         T+='\n'+self.HL
-#         return T
-#     HTMLHEADER='''
-# <H1>Кадр 1</H1>
-# <table cellpadding=5 border=1>
-# <tr bgcolor='''+Frame.HEADBGCOLOR+'''>
-# <td rowspan=3>Номер<br>блока</td>
-# <td rowspan=2 colspan=3>Время, ДД:ЧЧ:ММ:СС</td>
-# <td colspan=6>Магнитное поле в наноПопугаях</td>
-# <td colspan=3 rowspan=2>Температура<br>в микроГрадусниках</td>
-# </tr>
-# <tr bgcolor=#AAFFAA>
-# <td colspan=3>DM1</td>
-# <td colspan=3>DM2</td>
-# </tr>
-# <tr bgcolor=#AAFFAA>
-# <td>Штиль</td>
-# <td>БСКВУ1</td>
-# <td>БСКВУ2</td>
-# <td>X</td>
-# <td>Y</td>
-# <td>Z</td>
-# <td>X</td>
-# <td>Y</td>
-# <td>Z</td>
-# <td>DM1</td>
-# <td>DM2</td>
-# <td>Штиль</td>
-# </tr>
-# '''
-#     def html(self):
-#         return '''<tr %s><td><a href="#%i">%i</a></td><td>%s</td><td>%s</td><td>%s</td>%s%s%s</tr>'''%(\
-#             {True:'',False:'bgcolor=#FFAAAA'}[self.Valid],
-#             self.blockN,self.blockN,\
-#             self.time,self.BSKVU1,self.BSKVU2,\
-#             self.DM1peak.html(),self.DM2peak.html(),
-#             self.Temp.html()
-#             )
-# 
-# ############# разбор потоков K1..K3 на пакеты ###############
-# 
-# BLKSET1={}
-# BLKSET2={}
-# BLKSET3={}
-# BLKSET4={}
-# for K in [K1,K2,K3]:
-#     for P in K.packages():
-#         PACK=K.package(P)
-#         if PACK[0]+1==1:
-#             F=Frame1(K.ID,P,PACK) 
-#             BLKSET1[F.blockN]=F
-#         elif PACK[0]+1==2:
-#             F=Frame2(K.ID,P,PACK) 
-#             BLKSET2[F.blockN]=F
-#         elif PACK[0]+1==256 and PACK[3]==200:
-#             F=Frame3(K.ID,P,PACK) 
-#             BLKSET3[F.blockN]=F
-#         elif PACK[0]+1==256 and PACK[3]==201:
-#             F=Frame4(K.ID,P,PACK) 
-#             BLKSET4[F.blockN]=F
-#         else:
-#             F=Frame(K.ID,P,PACK)
-#         print '\n%s'%F
-# 
-# ############# генерация отчетов ###############
-# 
-# print >>HTML1,Frame1.HTMLHEADER
-# print >>HTML2,Frame2.HTMLHEADER
-# print >>HTML3,Frame3.HTMLHEADER
-# print >>HTML4,Frame4.HTMLHEADER
-# 
-# for B in sorted(BLKSET1.keys()):
-#     BLK=BLKSET1[B]
-#     print >>HTML1,BLK.html()
-# print >>HTML1,Frame1.HTMLFOOTER
-# for B in sorted(BLKSET1.keys()):
-#     BLK=BLKSET1[B]
-#     print >>HTML1,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
-# 
-# for B in sorted(BLKSET2.keys()):
-#     BLK=BLKSET2[B]
-#     print >>HTML2,BLK.html()
-# print >>HTML2,Frame2.HTMLFOOTER
-# for B in sorted(BLKSET2.keys()):
-#     BLK=BLKSET2[B]
-#     print >>HTML2,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
-# 
-# for B in sorted(BLKSET3.keys()):
-#     BLK=BLKSET3[B]
-#     print >>HTML3,BLK.html()
-# print >>HTML3,Frame3.HTMLFOOTER
-# for B in sorted(BLKSET3.keys()):
-#     BLK=BLKSET3[B]
-#     print >>HTML3,'<a name="%s">\n<pre>\n%s\n</pre>\n</a>\n'%(BLK.blockN,BLK)
-# 
-# print >>HTML1,'</html>'
-# print >>HTML2,'</html>'
-# print >>HTML3,'</html>'
-# print >>HTML4,'</html>'
-# print >>HTMLS,'<pre>%s</pre>'%STATBROK
