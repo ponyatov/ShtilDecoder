@@ -31,15 +31,30 @@ BitMap={
 'K3':[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
 }
 
+class HTML:
+    def __init__(self, FileName, Title):
+        self.FileName = FileName
+        self.Title = Title
+        self.SubTitle = ''
+        self.dat = ''
+    def __del__(self): 
+        self.fh = open(self.FileName, 'w')
+        print >> self.fh, '<html>\n<title>%s</title>\n<body>\n<h1>%s</h1>' % (self.Title, self.SubTitle)
+        print >> self.fh, self.dat
+        print >> self.fh, '</body>\n</html>\n'
+        self.fh.close()
+    def write(self, S): self.dat += S
+
 # выходные файлы с отчетами, открывать в Excel или браузере
-HTML1 = open('%s/kadr1.html'%DATDIR,'w')
-HTML2 = open('%s/kadr2.html'%DATDIR,'w')
-HTML3 = open('%s/kadr3.html'%DATDIR,'w')
-HTML4 = open('%s/kadr4.html'%DATDIR,'w')
-HTMLS = open('%s/stat.html'%DATDIR,'w')
-K1LOG = open('%s/K1.html'%DATDIR,'w')
-K2LOG = open('%s/K2.html'%DATDIR,'w')
-K3LOG = open('%s/K3.html'%DATDIR,'w')
+# HTML1 = open('%s/kadr1.html'%DATDIR,'w')
+# HTML2 = open('%s/kadr2.html'%DATDIR,'w')
+# HTML3 = open('%s/kadr3.html'%DATDIR,'w')
+# HTML4 = open('%s/kadr4.html'%DATDIR,'w')
+# HTMLS = open('%s/stat.html'%DATDIR,'w')
+K1LOG = HTML('%s/K1.html'%DATDIR,'Канал 1 (row): %s'%DATDIR)
+K2LOG = HTML('%s/K2.html'%DATDIR,'Канал 2 (row): %s'%DATDIR)
+K3LOG = HTML('%s/K3.html'%DATDIR,'Канал 3 (row): %s'%DATDIR)
+KADR12 = HTML('%s/kadr12.html'%DATDIR,'Кадры 1/2: %s'%DATDIR)
 
 ######################################################
 
@@ -47,15 +62,6 @@ import os,time,re,math
 
 # выходной файл лога
 # sys.stdout=open('log.log','w')
-
-print >>HTML1,'<html><title>Кадр 1: %s</title>'%DATDIR
-print >>HTML2,'<html><title>Кадр 2: %s</title>'%DATDIR
-print >>HTML3,'<html><title>Кадр 3: %s</title>'%DATDIR
-print >>HTML4,'<html><title>Кадр 4: %s</title>'%DATDIR
-print >>HTMLS,'<html><title>Статистика: %s</title>'%DATDIR
-print >>K1LOG,'<html>'
-print >>K2LOG,'<html>'
-print >>K3LOG,'<html>'
 
 print time.localtime()[:6],sys.argv
 print '\nDATDIR "%s"\n'%DATDIR
@@ -346,53 +352,52 @@ class Package2(Package):
 
 class Channel:
     'канал: поток байтовых данных'
-    def __init__(self,ID,BT):
-        self.ID=ID
-        self.BT=BT
-        self.DAT=[]
-        self.SZ=len(DAT[(1,1)])
+    def __init__(self, ID, BT):
+        self.ID = ID
+        self.BT = BT
+        self.DAT = []
+        self.SZ = len(DAT[(1, 1)])
         for i in range(self.SZ):
-            byte=0
+            byte = 0
             for bit in range(8):
-                byte=byte*2+DAT[BT[bit]][i]
-            self.DAT+=[byte]
+                byte = byte * 2 + DAT[BT[bit]][i]
+            self.DAT += [byte]
         self.packindex()
-        self.PACKS=[]
+        self.PACKS = []
         for a in self.INDEX:
-            T=self.package(a)
-            if T[0]==0: P=Package1(self.ID,a,T)
-            elif T[0]==1: P=Package2(self.ID,a,T)
-            else: P=Package(self.ID,a,T)
+            T = self.package(a)
+            if T[0] == 0: P = Package1(self.ID, a, T)
+            elif T[0] == 1: P = Package2(self.ID, a, T)
+            else: P = Package(self.ID, a, T)
             self.PACKS.append(P)
     def packindex(self):
         'перестроение индекса пакетов'
-        self.INDEX=[]
-        for i in range(len(self.DAT)-31):
-            if self.DAT[i+1:i+3]==[0x55,0xAA]:
-                self.INDEX+=[i]
+        self.INDEX = []
+        for i in range(len(self.DAT) - 31):
+            if self.DAT[i + 1:i + 3] == [0x55, 0xAA]:
+                self.INDEX += [i]
     def __str__(self):
-        return 'Канал %s [%i байт, %i пакетов]'%(self.ID,self.SZ,len(self.INDEX))
+        return 'Канал %s [%i байт, %i пакетов]' % (self.ID, self.SZ, len(self.INDEX))
     def html(self):
-        T='<title>%s</title><H1>%s</H1>\n'%(self,self)
-        T+='<table border=1 cellpadding=3>\n'
-        for P in self.PACKS: T+=P.html()
-        T+='</table>\n'
-        for P in self.PACKS: T+='<pre>%s</pre>'%P
+        T = '<table border=1 cellpadding=3>\n'
+        for P in self.PACKS: T += P.html()
+        T += '</table>\n'
+        for P in self.PACKS: T += '<pre>%s</pre>\n' % P
         return T
     def packages(self): return self.PACKS
-    def package(self,addr): return self.DAT[addr:addr+32]
+    def package(self, addr): return self.DAT[addr:addr + 32]
     def __iter__(self): return iter(self.INDEX)
 
 print
-K1=Channel('K1',BitMap['K1']) ; print K1 ; print >>K1LOG,K1.html()
-K2=Channel('K2',BitMap['K2']) ; print K2 ; print >>K2LOG,K2.html()
-K3=Channel('K3',BitMap['K3']) ; print K3 ; print >>K3LOG,K3.html()
+K1 = Channel('K1', BitMap['K1']) ; print K1 ; K1LOG.SubTitle = K1 ; print >>K1LOG, K1.html()
+K2 = Channel('K2', BitMap['K2']) ; print K2 ; K2LOG.SubTitle = K1 ; print >>K2LOG, K2.html()
+K3 = Channel('K3', BitMap['K3']) ; print K3 ; K3LOG.SubTitle = K1 ; print >>K3LOG, K3.html()
 
 # print >>K1LOG,'<table border=1 cellpadding=2>'
 # for P in K1.packages():
 #     print >>K1LOG,Package(K1.package(P)).html()
 # print >>K1LOG,'</table>'
- 
+
 print '.'
 
 # ############# классы полей кадра ###############
