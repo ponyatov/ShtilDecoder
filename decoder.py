@@ -76,6 +76,9 @@ def dump(dat):
     T+='\n'
     return T
 
+def bgcolor(F):
+    return {True:"lightgreen", False:"yellow"}[F]
+
 ############################
 # класс статистики
 ############################
@@ -191,8 +194,8 @@ class AnyTime:
         self.MIN = N & 0b111111 ; N = N >> 6
         self.HOUR = N & 0b11111  ; N = N >> 5
         self.DAYS = N
-    def __str__(self): return '%.2i:%.2i:%.2i:%.2i %s' % (\
-            self.DAYS, self.HOUR, self.MIN, self.SEC, HD(self.DAT))
+    def __str__(self): return '%s %s' % (self.ts(), HD(self.DAT))
+    def ts(self): return '%.2i:%.2i:%.2i:%.2i'%(self.DAYS, self.HOUR, self.MIN, self.SEC )
 
 class ShtyrTime(AnyTime):
     'Время Штиля'
@@ -300,7 +303,7 @@ class Package:
         T += '-' * 40 + '\n'
         return T
     def html(self):
-        T = '<tr bgcolor="%s">' % ({True:"lightgreen", False:"yellow"}[self.OK])
+        T = '<tr bgcolor="%s">' % bgcolor(self.OK)
         T += '<td><a href="#%s">#%s</a></td>' % (self.ADDR, self.ADDR)
         T += reduce(lambda a, b:a + b, map(lambda x:'<td>%s</td>' % x, self.DAT))
         T += '</tr>\n'
@@ -308,17 +311,87 @@ class Package:
     def isValid(self): return self.CRC() == (self.CRC_H << 8) | self.CRC_L
     def CRC(self): return sum(self.DAT[:-2])
     
-class Report12:
+class Report:
+    def __init__(self): self.dat={}
+    def __len__(self): return len(self.dat.keys())
+    def __setitem__(self,idx,val): self.dat[idx]=val
+    def __getitem__(self,idx):
+        try:
+            return self.dat[idx]
+        except KeyError:
+            self.dat[idx]={}
+            return self.dat[idx]
+    def htd(self,IDX,FLD,VAL):
+        try:
+            bgc=bgcolor(self[IDX][VAL])
+        except:
+            bgc="black"
+        try:
+            return '<td bgcolor="%s">%s</td>'%(bgc,self[IDX][FLD])
+        except KeyError:
+            return '<td></td>'
+    
+class Report12(Report):
     'Отчет по пакетам 1/2'
-    def __init__(self): self.dat=[]
-    def __len__(self): return len(self.dat)
     def __str__(self): return 'Отчет по кадрам 1/2'
     def html(self):
-        T='<table border=1 cellpadding=3>\n'
-        for i in range(len(self)):
-            T+=self[i].html()
+        T=self.HTMLTABLEHEAD
+        for i in sorted(self.dat.keys()):
+            T+='<tr><td>%s</td>'%i
+            # BSKVU
+            T+=self.htd(i,'BSKVU1','Valid1')
+            T+=self.htd(i,'BSKVU2','Valid1')
+            # DMax
+            T+=self.htd(i,'1DM1X','Valid1')
+            T+=self.htd(i,'1DM1Y','Valid1')
+            T+=self.htd(i,'1DM1Z','Valid1')
+            T+=self.htd(i,'1DM2X','Valid1')
+            T+=self.htd(i,'1DM2Y','Valid1')
+            T+=self.htd(i,'1DM2Z','Valid1')
+            # DCurr
+            T+=self.htd(i,'2DM1X','Valid2')
+            T+=self.htd(i,'2DM1Y','Valid2')
+            T+=self.htd(i,'2DM1Z','Valid2')
+            T+=self.htd(i,'','Valid2')
+            T+=self.htd(i,'','Valid2')
+            T+=self.htd(i,'','Valid2')
+#             # Upit
+#             T+=self.htd('','Valid2')
+#             T+=self.htd('','Valid2')
+#             T+=self.htd('','Valid2')
+#             # Ush
+#             T+=self.htd('','Valid2')
+#             T+=self.htd('','Valid2')
+#             T+=self.htd('','Valid2')
+#             T+=self.htd('','Valid2')
+#             T+=self.htd('','Valid2')
+#             T+=self.htd('','Valid2')
+            ##
+            T+='</tr>\n'
         T+='</table>\n'
         return T
+    HTMLTABLEHEAD='''
+<table border=1 cellpadding=3>
+<tr bgcolor="lightblue">
+<td rowspan=2>#</td>
+<td colspan=2>Время</td>
+<td colspan=6>Максимальное значение<br>магнитного поля<br>в микроПопугаях</td>
+<td colspan=6>Текущее значение<br>магнитного поля<br>в микроПопугаях</td>
+<td colspan=3>Напряжение питания<br>мегаБолт</td>
+<td colspan=6>Напряжение шина-корпус<br>мегаБолт</td>
+</tr>
+<tr bgcolor="lightcyan">
+<td>БСКВУ1</td>
+<td>БСКВУ2</td>
+<td>X1</td><td>Y1</td><td>Z1</td>
+<td>X2</td><td>Y2</td><td>Z2</td>
+<td>X1</td><td>Y1</td><td>Z1</td>
+<td>X2</td><td>Y2</td><td>Z2</td>
+<td>min</td><td>max</td><td>среднее</td>
+<td>U1</td><td>U2</td><td>U3</td>
+<td>U3</td><td>U4</td><td>U5</td>
+</tr>
+'''
 R12 = Report12()     
     
 class Package1(Package):
@@ -333,6 +406,16 @@ class Package1(Package):
         self.DM1peak = MagnetField(self.DAT[16:20 + 1])
         self.DM2peak = MagnetField(self.DAT[21:25 + 1])
         self.Temp = Termo(self.DAT[26:29 + 1])
+        # дополнение отчета
+        R12[self.N]['Valid1']=self.OK
+        R12[self.N]['BSKVU1']=self.BSKVU1.ts()
+        R12[self.N]['BSKVU2']=self.BSKVU2.ts()
+        R12[self.N]['1DM1X']=self.DM1peak.X
+        R12[self.N]['1DM1Y']=self.DM1peak.Y
+        R12[self.N]['1DM1Z']=self.DM1peak.Z
+        R12[self.N]['1DM2X']=self.DM2peak.X
+        R12[self.N]['1DM2Y']=self.DM2peak.Y
+        R12[self.N]['1DM2Z']=self.DM2peak.Z
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
@@ -355,6 +438,11 @@ class Package2(Package):
         self.DM1 = MagnetField(self.DAT[8:12 + 1]) 
         self.DM2 = MagnetField(self.DAT[13:17 + 1])
         self.SHINA = Shina(self.N, self.DAT[18:29 + 1]) 
+        # дополнение отчета
+        R12[self.N]['Valid2']=self.OK
+        R12[self.N]['2DM1X']=self.DM1.X
+        R12[self.N]['2DM1Y']=self.DM1.Y
+        R12[self.N]['2DM1Z']=self.DM1.Z
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
