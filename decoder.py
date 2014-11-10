@@ -62,6 +62,7 @@ K3LOG = HTML('%s/K3.html'%DATDIR,'Канал 3 (row): %s'%DATDIR)
 KADR12 = HTML('%s/kadr12.html'%DATDIR,'Кадры 1/2: %s'%DATDIR)
 
 P1LOG = HTML('%s/P1.html'%DATDIR,'Пакет 1: %s'%DATDIR)
+P1LOG.SubTitle='Пакеты тип 1'
 print >>P1LOG,'''
 <table border=1 cellpadding=3>
 <tr bgcolor="lightblue">
@@ -86,6 +87,7 @@ print >>P1LOG,'''
 '''
 
 P2LOG = HTML('%s/P2.html'%DATDIR,'Пакет 2: %s'%DATDIR)
+P2LOG.SubTitle='Пакеты тип 2'
 print >>P2LOG,'''
 <table border=1 cellpadding=3>
 <tr bgcolor="lightblue">
