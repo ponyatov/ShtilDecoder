@@ -44,6 +44,11 @@ class HTML:
         print >> self.fh, '</body>\n</html>\n'
         self.fh.close()
     def write(self, S): self.dat += S
+    def __setitem__(self,tag,val):
+        if tag=='td':
+            self.write('<td>%s</td>'%str(val))
+        else:
+            self.write('<pre>%s</pre>'%str(val))
 
 # выходные файлы с отчетами, открывать в Excel или браузере
 # HTML1 = open('%s/kadr1.html'%DATDIR,'w')
@@ -55,6 +60,57 @@ K1LOG = HTML('%s/K1.html'%DATDIR,'Канал 1 (row): %s'%DATDIR)
 K2LOG = HTML('%s/K2.html'%DATDIR,'Канал 2 (row): %s'%DATDIR)
 K3LOG = HTML('%s/K3.html'%DATDIR,'Канал 3 (row): %s'%DATDIR)
 KADR12 = HTML('%s/kadr12.html'%DATDIR,'Кадры 1/2: %s'%DATDIR)
+
+P1LOG = HTML('%s/P1.html'%DATDIR,'Пакет 1: %s'%DATDIR)
+print >>P1LOG,'''
+<table border=1 cellpadding=3>
+<tr bgcolor="lightblue">
+<td rowspan=2>канал</td>
+<td rowspan=2>№ пакета</td>
+<td rowspan=2>адрес</td>
+<td colspan=3>Время</td>
+<td colspan=3>Пиковое DM1</td>
+<td colspan=3>Пиковое DM2</td>
+<td colspan=3>Температура</td>
+</tr>
+<tr bgcolor="lightcyan">
+<td>Штиля</td>
+<td>БСКВУ1</td>
+<td>БСКВУ2</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>DM1</td>
+<td>DM2</td>
+<td>Штиль</td>
+</tr>
+'''
+
+P2LOG = HTML('%s/P2.html'%DATDIR,'Пакет 2: %s'%DATDIR)
+print >>P2LOG,'''
+<table border=1 cellpadding=3>
+<tr bgcolor="lightblue">
+<td rowspan=2>канал</td>
+<td rowspan=2>№ пакета</td>
+<td rowspan=2>адрес</td>
+<td colspan=3>U питания</td>
+<td colspan=3>DM1</td>
+<td colspan=3>DM2</td>
+<td colspan=6>Напряжение шина-корпус</td>
+</tr>
+<tr bgcolor="lightcyan">
+<td>min</td>
+<td>max</td>
+<td>сред</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>U1</td>
+<td>U2</td>
+<td>U3</td>
+<td>U4</td>
+<td>U5</td>
+<td>U6</td>
+</tr>
+'''
 
 ######################################################
 
@@ -194,12 +250,11 @@ class AnyTime:
         self.MIN = N & 0b111111 ; N = N >> 6
         self.HOUR = N & 0b11111  ; N = N >> 5
         self.DAYS = N
-    def __str__(self): return '%s %s' % (self.ts(), HD(self.DAT))
+    def __str__(self): return '%s' % self.ts()
     def ts(self): return '%.2i:%.2i:%.2i:%.2i'%(self.DAYS, self.HOUR, self.MIN, self.SEC )
 
 class ShtyrTime(AnyTime):
     'Время Штиля'
-
 class BSKVU(AnyTime):
     'Фремя БСКВУ'
 
@@ -312,64 +367,34 @@ class Package:
     def CRC(self): return sum(self.DAT[:-2])
     
 class Report:
-    def __init__(self): self.dat={}
-    def __len__(self): return len(self.dat.keys())
-    def __setitem__(self,idx,val): self.dat[idx]=val
-    def __getitem__(self,idx):
-        try:
-            return self.dat[idx]
-        except KeyError:
-            self.dat[idx]={}
-            return self.dat[idx]
-    def htd(self,IDX,FLD,VAL):
-        try:
-            bgc=bgcolor(self[IDX][VAL])
-        except:
-            bgc="black"
-        try:
-            return '<td bgcolor="%s">%s</td>'%(bgc,self[IDX][FLD])
-        except KeyError:
-            return '<td></td>'
+    def __init__(self): 
+        self.dat={}
+#     def __getitem__(self,idx):
+#         try:
+#             return self.dat[idx]
+#         except KeyError:
+#             self.dat[idx]={}
+#             return self.dat[idx]
+#     def put(self,CH,N,FLD,VAL):
+#         self.dat+=[(CH,N,FLD,VAL)]
+#     def htd(self,IDX,FLD,VAL):
+#         try:
+#             T=self.dat[IDX][FLD]
+#         except KeyError:
+#             T='???[%s]%s???'%(IDX,FLD)
+#         bgc=bgcolor(self.dat[IDX][VAL])
+#         return '<td bgcolor="%s">%s</td>'%(bgc,T)
     
 class Report12(Report):
     'Отчет по пакетам 1/2'
     def __str__(self): return 'Отчет по кадрам 1/2'
     def html(self):
         T=self.HTMLTABLEHEAD
-        for i in sorted(self.dat.keys()):
-            T+='<tr><td>%s:%s</td>'%i
-            # BSKVU
-            T+=self.htd(i,'TST','Valid1')
-            T+=self.htd(i,'BSKVU1','Valid1')
-            T+=self.htd(i,'BSKVU2','Valid1')
-            # DMax
-            T+=self.htd(i,'1DM1X','Valid1')
-            T+=self.htd(i,'1DM1Y','Valid1')
-            T+=self.htd(i,'1DM1Z','Valid1')
-            T+=self.htd(i,'1DM2X','Valid1')
-            T+=self.htd(i,'1DM2Y','Valid1')
-            T+=self.htd(i,'1DM2Z','Valid1')
-            # DCurr
-            T+=self.htd(i,'2DM1X','Valid2')
-            T+=self.htd(i,'2DM1Y','Valid2')
-            T+=self.htd(i,'2DM1Z','Valid2')
-            T+=self.htd(i,'2DM2X','Valid2')
-            T+=self.htd(i,'2DM2Y','Valid2')
-            T+=self.htd(i,'2DM2Z','Valid2')
-            # Upit
-            T+=self.htd(i,'UMIN','Valid2')
-            T+=self.htd(i,'UMAX','Valid2')
-            T+=self.htd(i,'UMED','Valid2')
-            # Ush
-            T+=self.htd(i,'U1','Valid2')
-            T+=self.htd(i,'U2','Valid2')
-            T+=self.htd(i,'U3','Valid2')
-            T+=self.htd(i,'U4','Valid2')
-            T+=self.htd(i,'U5','Valid2')
-            T+=self.htd(i,'U6','Valid2')
-            ##
-            T+='</tr>\n'
-        T+='</table>\n'
+# #         for i in self.dat:
+# #             T+='<tr><td>%s</td></tr>\n'%str(i)
+#         T+='</table>\n'
+#         for i in self.dat:
+#             T+='<pre>%s\n%s</pre>\n'%(str(i),str(self.dat[i]))
         return T
     HTMLTABLEHEAD='''
 <table border=1 cellpadding=3>
@@ -408,17 +433,26 @@ class Package1(Package):
         self.DM1peak = MagnetField(self.DAT[16:20 + 1])
         self.DM2peak = MagnetField(self.DAT[21:25 + 1])
         self.Temp = Termo(self.DAT[26:29 + 1])
-        # дополнение отчета
-        R12[self.CH,self.N]['Valid1']=self.OK
-        R12[self.CH,self.N]['TST']=self.time.ts()
-        R12[self.CH,self.N]['BSKVU1']=self.BSKVU1.ts()
-        R12[self.CH,self.N]['BSKVU2']=self.BSKVU2.ts()
-        R12[self.CH,self.N]['1DM1X']=self.DM1peak.X
-        R12[self.CH,self.N]['1DM1Y']=self.DM1peak.Y
-        R12[self.CH,self.N]['1DM1Z']=self.DM1peak.Z
-        R12[self.CH,self.N]['1DM2X']=self.DM2peak.X
-        R12[self.CH,self.N]['1DM2Y']=self.DM2peak.Y
-        R12[self.CH,self.N]['1DM2Z']=self.DM2peak.Z
+        self.htmlreport()
+    def htmlreport(self):
+        # html
+        print >>P1LOG,'<tr bgcolor="%s">'%bgcolor(self.OK)
+        P1LOG['td']=self.CH
+        P1LOG['td']=self.N
+        print >>P1LOG,'<td><a href="%s.html#%s">#%s</a></td>'%(self.CH,self.ADDR,self.ADDR)
+        P1LOG['td']=self.time
+        P1LOG['td']=self.BSKVU1
+        P1LOG['td']=self.BSKVU1
+        P1LOG['td']=self.DM1peak.X
+        P1LOG['td']=self.DM1peak.Y
+        P1LOG['td']=self.DM1peak.Z
+        P1LOG['td']=self.DM2peak.X
+        P1LOG['td']=self.DM2peak.Y
+        P1LOG['td']=self.DM2peak.Z
+        P1LOG['td']=self.Temp.DM1
+        P1LOG['td']=self.Temp.DM2
+        P1LOG['td']=self.Temp.SHT
+        print >>P1LOG,'</tr>'
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
@@ -441,23 +475,29 @@ class Package2(Package):
         self.DM1 = MagnetField(self.DAT[8:12 + 1]) 
         self.DM2 = MagnetField(self.DAT[13:17 + 1])
         self.SHINA = Shina(self.N, self.DAT[18:29 + 1]) 
-        # дополнение отчета
-        R12[self.CH,self.N]['Valid2']=self.OK
-        R12[self.CH,self.N]['2DM1X']=self.DM1.X
-        R12[self.CH,self.N]['2DM1Y']=self.DM1.Y
-        R12[self.CH,self.N]['2DM1Z']=self.DM1.Z
-        R12[self.CH,self.N]['2DM2X']=self.DM2.X
-        R12[self.CH,self.N]['2DM2Y']=self.DM2.Y
-        R12[self.CH,self.N]['2DM2Z']=self.DM2.Z
-        R12[self.CH,self.N]['UMIN']=self.Upit.MIN
-        R12[self.CH,self.N]['UMAX']=self.Upit.MAX
-        R12[self.CH,self.N]['UMED']=self.Upit.MED
-        R12[self.CH,self.N]['U1']=self.SHINA.SK1
-        R12[self.CH,self.N]['U2']=self.SHINA.SK2
-        R12[self.CH,self.N]['U3']=self.SHINA.SK3
-        R12[self.CH,self.N]['U4']=self.SHINA.SK4
-        R12[self.CH,self.N]['U5']=self.SHINA.SK5
-        R12[self.CH,self.N]['U6']=self.SHINA.SK6
+        # html
+        self.htmlreport()
+    def htmlreport(self):
+        print >>P2LOG,'<tr bgcolor="%s">'%bgcolor(self.OK)
+        P2LOG['td']=self.CH
+        P2LOG['td']=self.N
+        print >>P2LOG,'<td><a href="%s.html#%s">#%s</a></td>'%(self.CH,self.ADDR,self.ADDR)
+        P2LOG['td']=self.Upit.MIN
+        P2LOG['td']=self.Upit.MAX
+        P2LOG['td']=self.Upit.MED
+        P2LOG['td']=self.DM1.X
+        P2LOG['td']=self.DM1.Y
+        P2LOG['td']=self.DM1.Z
+        P2LOG['td']=self.DM2.X
+        P2LOG['td']=self.DM2.Y
+        P2LOG['td']=self.DM2.Z
+        P2LOG['td']=self.SHINA.SK1
+        P2LOG['td']=self.SHINA.SK2
+        P2LOG['td']=self.SHINA.SK3
+        P2LOG['td']=self.SHINA.SK4
+        P2LOG['td']=self.SHINA.SK5
+        P2LOG['td']=self.SHINA.SK6
+        print >>P2LOG,'</tr>'
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
@@ -512,5 +552,7 @@ K2 = Channel('K2', BitMap['K2']) ; print K2 ; K2LOG.SubTitle = K1 ; print >> K2L
 K3 = Channel('K3', BitMap['K3']) ; print K3 ; K3LOG.SubTitle = K1 ; print >> K3LOG, K3.html()
 
 print R12 ; KADR12.SubTitle = R12 ; print >> KADR12, R12.html()
+
+print >>P1LOG,'</table>'
 
 print '.'
