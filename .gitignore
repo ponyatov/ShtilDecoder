@@ -5,4 +5,5 @@ dat/*
 *.log
 gnuplot
 *.exe
+*.pyc
 
