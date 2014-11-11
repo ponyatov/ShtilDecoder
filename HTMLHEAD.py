@@ -103,3 +103,44 @@ Report12='''
 <td>U3</td><td>U4</td><td>U5</td>
 </tr>
 '''
+
+
+R12='''
+<table border=1 cellpadding=3>
+<tr bgcolor="lightblue">
+<td rowspan=2>канал</td>
+<td rowspan=2>№ пакета</td>
+<td rowspan=2>тип</td>
+<td rowspan=2>адрес</td>
+<td colspan=3>Время</td>
+<td colspan=3>Пиковое DM1</td>
+<td colspan=3>Пиковое DM2</td>
+<td colspan=3>Температура</td>
+<td colspan=3>U питания</td>
+<td colspan=3>DM1</td>
+<td colspan=3>DM2</td>
+<td colspan=6>Напряжение шина-корпус</td>
+</tr>
+<tr bgcolor="lightcyan">
+<td>Штиля</td>
+<td>БСКВУ1</td>
+<td>БСКВУ2</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>DM1</td>
+<td>DM2</td>
+<td>Штиль</td>
+<td>min</td>
+<td>max</td>
+<td>сред</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>X</td><td>Y</td><td>Z</td>
+<td>U1</td>
+<td>U2</td>
+<td>U3</td>
+<td>U4</td>
+<td>U5</td>
+<td>U6</td>
+</tr>
+'''
+

@@ -80,6 +80,10 @@ P4XLOG = HTML('%s/P4x.html'%DATDIR,'Пакет 4(x): %s'%DATDIR)
 P4XLOG.SubTitle='Пакеты тип 4(x)'
 print >>P4XLOG,HTMLHEAD.PnXLOG
 
+R12 = HTML('%s/Report12.html'%DATDIR,'Отчет по пакетам 1+2: %s'%DATDIR)
+R12.SubTitle='Отчет по пакетам 1+2'
+print >>R12,HTMLHEAD.R12
+
 ######################################################
 
 import os,time,re,math
@@ -199,6 +203,8 @@ class Signatura:
     'Заголовок'
     def __init__(self, DAT): self.DAT = DAT
     def __str__(self): return HD(self.DAT)
+    len = 3
+    pair = [0x55, 0xAA]
 
 class AnyTime:
     'метка времени'
@@ -282,6 +288,7 @@ class Shina:
 
 class Package:
     'пакет общий код'
+    len = 0x20
     def __init__(self, CH, ADDR, DAT, HTMLOG):
         self.CH = CH
         self.ADDR = ADDR
@@ -297,6 +304,7 @@ class Package:
         self.N = self.DAT[3]
         self.CRC_H = self.DAT[30]
         self.CRC_L = self.DAT[31]
+        self.XBYTE = self.DAT[Package.len:Package.len+Signatura.len]
         self.OK = self.isValid()
     def __str__(self):
         T = '\n<a name="%s">Пакет %s@%s\n' % (self.ADDR, self.ADDR, self.CH)
@@ -307,9 +315,11 @@ class Package:
         T += 'CRC_H: %s\n' % self.CRC_H
         T += 'CRC_L: %s\n' % self.CRC_L
         T += 'валидность: %s\n' % self.OK
+        T += 'xbyte: %s\n' % HD(self.XBYTE)
         T += '-' * 40 + '\n'
         return T
     def htmlreport(self):
+        # htmlog
         print >> self.HTMLOG, '<tr bgcolor="%s">' % bgcolor(self.OK)
         self.HTMLOG['td'] = self.CH
         self.HTMLOG['td'] = self.N
@@ -323,7 +333,7 @@ class Package:
         T += '</tr>\n'
         return T
     def isValid(self): return self.CRC() == (self.CRC_H << 8) | self.CRC_L
-    def CRC(self): return sum(self.DAT[:-2])
+    def CRC(self): return sum(self.DAT[:32-2])
     
 class Package1(Package):
     'пакет тип кадр1'
@@ -341,6 +351,7 @@ class Package1(Package):
         self.htmlreport()
     def htmlreport(self):
         Package.htmlreport(self)
+        # htmlog
         for i in [
             self.time,
             self.BSKVU1, self.BSKVU1,
@@ -349,6 +360,22 @@ class Package1(Package):
             self.Temp.DM1, self.Temp.DM2, self.Temp.SHT
         ]: self.HTMLOG['td'] = i
         print >> self.HTMLOG, '</tr>'
+        # R12
+        print >> R12, '<tr bgcolor="%s">' % bgcolor(self.OK)
+        R12['td'] = self.CH
+        R12['td'] = self.N
+        R12['td'] = self.Type
+        print >> R12, \
+            '<td><a href="%s.html#%s">#%s</a></td>' % (\
+                self.CH, self.ADDR, self.ADDR)
+        for i in [
+            self.time,
+            self.BSKVU1, self.BSKVU1,
+            self.DM1peak.X, self.DM1peak.Y, self.DM1peak.Z,
+            self.DM2peak.X, self.DM2peak.Y, self.DM2peak.Z,
+            self.Temp.DM1, self.Temp.DM2, self.Temp.SHT
+        ]: R12['td'] = i
+        print >> R12, '</tr>'
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
@@ -421,22 +448,33 @@ class Package2(Package):
         self.htmlreport()
     def htmlreport(self):
         Package.htmlreport(self)
-        P2LOG['td']=self.Upit.MIN
-        P2LOG['td']=self.Upit.MAX
-        P2LOG['td']=self.Upit.MED
-        P2LOG['td']=self.DM1.X
-        P2LOG['td']=self.DM1.Y
-        P2LOG['td']=self.DM1.Z
-        P2LOG['td']=self.DM2.X
-        P2LOG['td']=self.DM2.Y
-        P2LOG['td']=self.DM2.Z
-        P2LOG['td']=self.SHINA.SK1
-        P2LOG['td']=self.SHINA.SK2
-        P2LOG['td']=self.SHINA.SK3
-        P2LOG['td']=self.SHINA.SK4
-        P2LOG['td']=self.SHINA.SK5
-        P2LOG['td']=self.SHINA.SK6
+        # htmlog
+        for i in [
+        self.Upit.MIN,self.Upit.MAX,self.Upit.MED,
+        self.DM1.X,self.DM1.Y,self.DM1.Z,
+        self.DM2.X,self.DM2.Y,self.DM2.Z,
+        self.SHINA.SK1,self.SHINA.SK2,self.SHINA.SK3,
+        self.SHINA.SK4,self.SHINA.SK5,self.SHINA.SK6
+                  ]:
+            P2LOG['td'] = i 
         print >>P2LOG,'</tr>'
+        # R12
+        print >> R12, '<tr bgcolor="%s">' % bgcolor(self.OK)
+        R12['td'] = self.CH
+        R12['td'] = self.N
+        R12['td'] = self.Type
+        print >> R12, \
+            '<td><a href="%s.html#%s">#%s</a></td>' % (\
+                self.CH, self.ADDR, self.ADDR)
+        for i in [' ']*12+[
+        self.Upit.MIN,self.Upit.MAX,self.Upit.MED,
+        self.DM1.X,self.DM1.Y,self.DM1.Z,
+        self.DM2.X,self.DM2.Y,self.DM2.Z,
+        self.SHINA.SK1,self.SHINA.SK2,self.SHINA.SK3,
+        self.SHINA.SK4,self.SHINA.SK5,self.SHINA.SK6
+                  ]:
+            R12['td'] = i 
+        print >>R12,'</tr>'
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
@@ -485,8 +523,8 @@ class Channel:
     def packindex(self):
         'перестроение индекса пакетов'
         self.INDEX = []
-        for i in range(len(self.DAT) - 31):
-            if self.DAT[i + 1:i + 3] == [0x55, 0xAA]:
+        for i in range(len(self.DAT) - Package.len - Signatura.len):
+            if self.DAT[i + 1:i + 3] == Signatura.pair:
                 self.INDEX += [i]
     def __str__(self):
         return 'Канал %s [%i байт, %i пакетов]' % (self.ID, self.SZ, len(self.INDEX))
@@ -497,7 +535,7 @@ class Channel:
         for P in self.PACKS: T += '<pre>%s</pre>\n' % P
         return T
     def packages(self): return self.PACKS
-    def package(self, addr): return self.DAT[addr:addr + 32]
+    def package(self, addr): return self.DAT[addr:addr + 32+3]
     def __iter__(self): return iter(self.INDEX)
 
 # загрузка каналов из файлов
