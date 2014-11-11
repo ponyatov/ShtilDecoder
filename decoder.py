@@ -31,6 +31,7 @@ BitMap={
 'K3':[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
 }
 
+import HTMLHEAD
 class HTML:
     def __init__(self, FileName, Title):
         self.FileName = FileName
@@ -51,11 +52,6 @@ class HTML:
             self.write('<pre>%s</pre>'%str(val))
 
 # выходные файлы с отчетами, открывать в Excel или браузере
-# HTML1 = open('%s/kadr1.html'%DATDIR,'w')
-# HTML2 = open('%s/kadr2.html'%DATDIR,'w')
-# HTML3 = open('%s/kadr3.html'%DATDIR,'w')
-# HTML4 = open('%s/kadr4.html'%DATDIR,'w')
-# HTMLS = open('%s/stat.html'%DATDIR,'w')
 K1LOG = HTML('%s/K1.html'%DATDIR,'Канал 1 (row): %s'%DATDIR)
 K2LOG = HTML('%s/K2.html'%DATDIR,'Канал 2 (row): %s'%DATDIR)
 K3LOG = HTML('%s/K3.html'%DATDIR,'Канал 3 (row): %s'%DATDIR)
@@ -63,56 +59,19 @@ KADR12 = HTML('%s/kadr12.html'%DATDIR,'Кадры 1/2: %s'%DATDIR)
 
 P1LOG = HTML('%s/P1.html'%DATDIR,'Пакет 1: %s'%DATDIR)
 P1LOG.SubTitle='Пакеты тип 1'
-print >>P1LOG,'''
-<table border=1 cellpadding=3>
-<tr bgcolor="lightblue">
-<td rowspan=2>канал</td>
-<td rowspan=2>№ пакета</td>
-<td rowspan=2>адрес</td>
-<td colspan=3>Время</td>
-<td colspan=3>Пиковое DM1</td>
-<td colspan=3>Пиковое DM2</td>
-<td colspan=3>Температура</td>
-</tr>
-<tr bgcolor="lightcyan">
-<td>Штиля</td>
-<td>БСКВУ1</td>
-<td>БСКВУ2</td>
-<td>X</td><td>Y</td><td>Z</td>
-<td>X</td><td>Y</td><td>Z</td>
-<td>DM1</td>
-<td>DM2</td>
-<td>Штиль</td>
-</tr>
-'''
+print >>P1LOG,HTMLHEAD.P1LOG
 
 P2LOG = HTML('%s/P2.html'%DATDIR,'Пакет 2: %s'%DATDIR)
 P2LOG.SubTitle='Пакеты тип 2'
-print >>P2LOG,'''
-<table border=1 cellpadding=3>
-<tr bgcolor="lightblue">
-<td rowspan=2>канал</td>
-<td rowspan=2>№ пакета</td>
-<td rowspan=2>адрес</td>
-<td colspan=3>U питания</td>
-<td colspan=3>DM1</td>
-<td colspan=3>DM2</td>
-<td colspan=6>Напряжение шина-корпус</td>
-</tr>
-<tr bgcolor="lightcyan">
-<td>min</td>
-<td>max</td>
-<td>сред</td>
-<td>X</td><td>Y</td><td>Z</td>
-<td>X</td><td>Y</td><td>Z</td>
-<td>U1</td>
-<td>U2</td>
-<td>U3</td>
-<td>U4</td>
-<td>U5</td>
-<td>U6</td>
-</tr>
-'''
+print >>P2LOG,HTMLHEAD.P2LOG
+
+P3021LOG = HTML('%s/P3021.html'%DATDIR,'Пакет 3(0,21): %s'%DATDIR)
+P3021LOG.SubTitle='Пакеты тип 3(0,21)'
+print >>P3021LOG,HTMLHEAD.P3021LOG
+
+P4LOG = HTML('%s/P4.html'%DATDIR,'Пакет 4: %s'%DATDIR)
+P4LOG.SubTitle='Пакеты тип 4'
+print >>P4LOG,HTMLHEAD.P4LOG
 
 ######################################################
 
@@ -214,14 +173,6 @@ class BitStream:
             len(self))
     def __len__(self): return len(self.dat)
     def __getitem__(self,idx): return self.dat[idx]
-
-# загрузка каналов из файлов
-
-DAT={}
-for i in [1,2]:
-    for j in range(1,12+1):
-        DAT[(i,j)]=BitStream(i,j)
-        print DAT[(i,j)]
 
 ############################
 # вспомогательные функции
@@ -333,10 +284,11 @@ class Shina:
 
 class Package:
     'пакет общий код'
-    def __init__(self, CH, ADDR, DAT):
+    def __init__(self, CH, ADDR, DAT, HTMLOG):
         self.CH = CH
         self.ADDR = ADDR
         self.DAT = DAT
+        self.HTMLOG = HTMLOG
         # декодирование с выделением срезов из списка байт
         self.SIGN = Signatura(self.DAT[0:3])
         self.N = self.DAT[3]
@@ -359,6 +311,13 @@ class Package:
         T += 'валидность: %s\n' % self.OK
         T += '-' * 40 + '\n'
         return T
+    def htmlreport(self):
+        print >> self.HTMLOG, '<tr bgcolor="%s">' % bgcolor(self.OK)
+        self.HTMLOG['td'] = self.CH
+        self.HTMLOG['td'] = self.N
+        print >> self.HTMLOG, \
+            '<td><a href="%s.html#%s">#%s</a></td>' % (\
+                self.CH, self.ADDR, self.ADDR)
     def html(self):
         T = '<tr bgcolor="%s">' % bgcolor(self.OK)
         T += '<td><a href="#%s">#%s</a></td>' % (self.ADDR, self.ADDR)
@@ -369,8 +328,7 @@ class Package:
     def CRC(self): return sum(self.DAT[:-2])
     
 class Report:
-    def __init__(self): 
-        self.dat={}
+    def __init__(self): self.dat={}
 #     def __getitem__(self,idx):
 #         try:
 #             return self.dat[idx]
@@ -425,9 +383,9 @@ R12 = Report12()
     
 class Package1(Package):
     'пакет тип кадр1'
-    def __init__(self, CH, ADDR, DAT):
+    def __init__(self, CH, ADDR, DAT, HTMLOG):
         # вызов конструктора суперкласса
-        Package.__init__(self, CH, ADDR, DAT)
+        Package.__init__(self, CH, ADDR, DAT, HTMLOG)
         # декодирование полей специфичных для кадра1
         self.time = ShtyrTime(self.DAT[4:7 + 1])
         self.BSKVU1 = BSKVU(self.DAT[8:11 + 1])
@@ -435,26 +393,23 @@ class Package1(Package):
         self.DM1peak = MagnetField(self.DAT[16:20 + 1])
         self.DM2peak = MagnetField(self.DAT[21:25 + 1])
         self.Temp = Termo(self.DAT[26:29 + 1])
+        # html
         self.htmlreport()
     def htmlreport(self):
-        # html
-        print >>P1LOG,'<tr bgcolor="%s">'%bgcolor(self.OK)
-        P1LOG['td']=self.CH
-        P1LOG['td']=self.N
-        print >>P1LOG,'<td><a href="%s.html#%s">#%s</a></td>'%(self.CH,self.ADDR,self.ADDR)
-        P1LOG['td']=self.time
-        P1LOG['td']=self.BSKVU1
-        P1LOG['td']=self.BSKVU1
-        P1LOG['td']=self.DM1peak.X
-        P1LOG['td']=self.DM1peak.Y
-        P1LOG['td']=self.DM1peak.Z
-        P1LOG['td']=self.DM2peak.X
-        P1LOG['td']=self.DM2peak.Y
-        P1LOG['td']=self.DM2peak.Z
-        P1LOG['td']=self.Temp.DM1
-        P1LOG['td']=self.Temp.DM2
-        P1LOG['td']=self.Temp.SHT
-        print >>P1LOG,'</tr>'
+        Package.htmlreport(self)
+        self.HTMLOG['td'] = self.time
+        self.HTMLOG['td'] = self.BSKVU1
+        self.HTMLOG['td'] = self.BSKVU1
+        self.HTMLOG['td'] = self.DM1peak.X
+        self.HTMLOG['td'] = self.DM1peak.Y
+        self.HTMLOG['td'] = self.DM1peak.Z
+        self.HTMLOG['td'] = self.DM2peak.X
+        self.HTMLOG['td'] = self.DM2peak.Y
+        self.HTMLOG['td'] = self.DM2peak.Z
+        self.HTMLOG['td'] = self.Temp.DM1
+        self.HTMLOG['td'] = self.Temp.DM2
+        self.HTMLOG['td'] = self.Temp.SHT
+        print >> self.HTMLOG, '</tr>'
     def __str__(self):
         # вызов дампера суперкласса
         T = Package.__str__(self)
@@ -467,11 +422,44 @@ class Package1(Package):
         T += '-' * 40 + '\n'
         return T
 
+class Package3021(Package):
+    'пакет тип кадр3'
+    def __init__(self, CH, ADDR, DAT, HTMLOG):
+        # вызов конструктора суперкласса
+        Package.__init__(self, CH, ADDR, DAT, HTMLOG)
+        # декодирование полей специфичных для кадра2
+        self.time = ShtyrTime(self.DAT[5:8 + 1])
+        self.BSKVU1 = BSKVU(self.DAT[9:12 + 1])
+        self.SubBlock = self.DAT[4]
+        self.ADC = self.DAT[13:28+1]
+        self.SRC = self.DAT[29]
+        # html
+        self.htmlreport()
+    def htmlreport(self):
+        Package.htmlreport(self)
+        self.HTMLOG['td'] = self.SubBlock
+        self.HTMLOG['td'] = self.time
+        self.HTMLOG['td'] = self.BSKVU1
+        for i in self.ADC: self.HTMLOG['td'] = i
+        self.HTMLOG['td'] = self.SRC
+        print >>self.HTMLOG,'</tr>'
+
+class Package4(Package):
+    'пакет тип кадр4'
+    def __init__(self, CH, ADDR, DAT, HTMLOG):
+        # вызов конструктора суперкласса
+        Package.__init__(self, CH, ADDR, DAT, HTMLOG)
+        # декодирование полей специфичных для кадра2
+        self.htmlreport()
+    def htmlreport(self):
+        Package.htmlreport(self)
+        print >>self.HTMLOG,'</tr>'
+
 class Package2(Package):
     'пакет тип кадр2'
-    def __init__(self, CH, ADDR, DAT):
+    def __init__(self, CH, ADDR, DAT, HTMLOG):
         # вызов конструктора суперкласса
-        Package.__init__(self, CH, ADDR, DAT)
+        Package.__init__(self, CH, ADDR, DAT, HTMLOG)
         # декодирование полей специфичных для кадра2
         self.Upit = Upit(self.DAT[4:7 + 1])
         self.DM1 = MagnetField(self.DAT[8:12 + 1]) 
@@ -480,10 +468,7 @@ class Package2(Package):
         # html
         self.htmlreport()
     def htmlreport(self):
-        print >>P2LOG,'<tr bgcolor="%s">'%bgcolor(self.OK)
-        P2LOG['td']=self.CH
-        P2LOG['td']=self.N
-        print >>P2LOG,'<td><a href="%s.html#%s">#%s</a></td>'%(self.CH,self.ADDR,self.ADDR)
+        Package.htmlreport(self)
         P2LOG['td']=self.Upit.MIN
         P2LOG['td']=self.Upit.MAX
         P2LOG['td']=self.Upit.MED
@@ -526,9 +511,18 @@ class Channel:
         self.PACKS = []
         for a in self.INDEX:
             T = self.package(a)
-            if T[0] == 0: P = Package1(self.ID, a, T)
-            elif T[0] == 1: P = Package2(self.ID, a, T)
-            else: P = Package(self.ID, a, T)
+            if T[0] == 0: 
+                P = Package1(self.ID, a, T, P1LOG)
+            elif T[0] == 1: 
+                P = Package2(self.ID, a, T, P2LOG)
+            elif T[0] == 0xFF:
+                if T[3] == 200 and T[4] in (0,21):
+                    P = Package3021(self.ID, a, T, P3021LOG)
+                elif T[3] == 201:
+                    P = Package4(self.ID, a, T, P4LOG)
+                else:
+                    P = Package(self.ID, a, T, None)
+            else: P = Package(self.ID, a, T, None)
             self.PACKS.append(P)
     def packindex(self):
         'перестроение индекса пакетов'
@@ -547,6 +541,14 @@ class Channel:
     def packages(self): return self.PACKS
     def package(self, addr): return self.DAT[addr:addr + 32]
     def __iter__(self): return iter(self.INDEX)
+
+# загрузка каналов из файлов
+
+DAT={}
+for i in [1,2]:
+    for j in range(1,12+1):
+        DAT[(i,j)]=BitStream(i,j)
+        print DAT[(i,j)]
 
 print
 K1 = Channel('K1', BitMap['K1']) ; print K1 ; K1LOG.SubTitle = K1 ; print >> K1LOG, K1.html()
