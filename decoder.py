@@ -55,7 +55,6 @@ class HTML:
 K1LOG = HTML('%s/K1.html'%DATDIR,'Канал 1 (row): %s'%DATDIR)
 K2LOG = HTML('%s/K2.html'%DATDIR,'Канал 2 (row): %s'%DATDIR)
 K3LOG = HTML('%s/K3.html'%DATDIR,'Канал 3 (row): %s'%DATDIR)
-KADR12 = HTML('%s/kadr12.html'%DATDIR,'Кадры 1/2: %s'%DATDIR)
 
 P1LOG = HTML('%s/P1.html'%DATDIR,'Пакет 1: %s'%DATDIR)
 P1LOG.SubTitle='Пакеты тип 1'
@@ -223,11 +222,6 @@ class MagnetField:
     def __str__(self): 
         return 'X:%i Y:%i Z:%i' % (\
             self.X, self.Y, self.Z)
-#     def module(self):
-#         return math.sqrt(self.X**2+self.Y**2+self.Z**2) 
-#     def html(self): 
-#         return '<td>%s</td><td>%s</td><td>%s</td>'%(\
-#             self.X,self.Y,self.Z)
 
 class Termo:
     'Температура'
@@ -241,8 +235,6 @@ class Termo:
     def __str__(self): 
         return '%s\tDM1:%i DM2:%i SHT:%i' % (HD(self.DAT), \
             self.DM1, self.DM2, self.SHT)
-#     def html(self): return '<td>%s</td><td>%s</td><td>%s</td>'%(\
-#             self.DM1,self.DM2,self.SHT)
 
 class Upit:
     'Напряжения питания'
@@ -256,8 +248,6 @@ class Upit:
     def __str__(self): 
         return '%s %s %s %s' % (
             self.MIN, self.MAX, self.MED, HD(self.DAT))
-#     def html(self): return '<td>%.2f</td><td>%.2f</td><td>%.2f</td>'%(\
-#         self.MIN,self.MED,self.MAX)
 
 class Shina:
     'Шина-Корпус'
@@ -326,60 +316,6 @@ class Package:
         return T
     def isValid(self): return self.CRC() == (self.CRC_H << 8) | self.CRC_L
     def CRC(self): return sum(self.DAT[:-2])
-    
-class Report:
-    def __init__(self): self.dat={}
-#     def __getitem__(self,idx):
-#         try:
-#             return self.dat[idx]
-#         except KeyError:
-#             self.dat[idx]={}
-#             return self.dat[idx]
-#     def put(self,CH,N,FLD,VAL):
-#         self.dat+=[(CH,N,FLD,VAL)]
-#     def htd(self,IDX,FLD,VAL):
-#         try:
-#             T=self.dat[IDX][FLD]
-#         except KeyError:
-#             T='???[%s]%s???'%(IDX,FLD)
-#         bgc=bgcolor(self.dat[IDX][VAL])
-#         return '<td bgcolor="%s">%s</td>'%(bgc,T)
-    
-class Report12(Report):
-    'Отчет по пакетам 1/2'
-    def __str__(self): return 'Отчет по кадрам 1/2'
-    def html(self):
-        T=self.HTMLTABLEHEAD
-# #         for i in self.dat:
-# #             T+='<tr><td>%s</td></tr>\n'%str(i)
-#         T+='</table>\n'
-#         for i in self.dat:
-#             T+='<pre>%s\n%s</pre>\n'%(str(i),str(self.dat[i]))
-        return T
-    HTMLTABLEHEAD='''
-<table border=1 cellpadding=3>
-<tr bgcolor="lightblue">
-<td rowspan=2>#</td>
-<td colspan=3>Время</td>
-<td colspan=6>Максимальное значение<br>магнитного поля<br>в микроПопугаях</td>
-<td colspan=6>Текущее значение<br>магнитного поля<br>в микроПопугаях</td>
-<td colspan=3>Напряжение питания<br>мегаБолт</td>
-<td colspan=6>Напряжение шина-корпус<br>мегаБолт</td>
-</tr>
-<tr bgcolor="lightcyan">
-<td>Штыря</td>
-<td>БСКВУ1</td>
-<td>БСКВУ2</td>
-<td>X1</td><td>Y1</td><td>Z1</td>
-<td>X2</td><td>Y2</td><td>Z2</td>
-<td>X1</td><td>Y1</td><td>Z1</td>
-<td>X2</td><td>Y2</td><td>Z2</td>
-<td>min</td><td>max</td><td>среднее</td>
-<td>U1</td><td>U2</td><td>U3</td>
-<td>U3</td><td>U4</td><td>U5</td>
-</tr>
-'''
-R12 = Report12()     
     
 class Package1(Package):
     'пакет тип кадр1'
@@ -554,8 +490,6 @@ print
 K1 = Channel('K1', BitMap['K1']) ; print K1 ; K1LOG.SubTitle = K1 ; print >> K1LOG, K1.html()
 K2 = Channel('K2', BitMap['K2']) ; print K2 ; K2LOG.SubTitle = K1 ; print >> K2LOG, K2.html()
 K3 = Channel('K3', BitMap['K3']) ; print K3 ; K3LOG.SubTitle = K1 ; print >> K3LOG, K3.html()
-
-print R12 ; KADR12.SubTitle = R12 ; print >> KADR12, R12.html()
 
 print >>P1LOG,'</table>'
 
