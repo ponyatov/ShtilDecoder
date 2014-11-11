@@ -49,7 +49,7 @@ P2LOG='''
 </tr>
 '''
 
-P3021LOG='''
+Pn021LOG='''
 <table border=1 cellpadding=3>
 <tr bgcolor="lightblue">
 <td rowspan=2>канал</td>
@@ -66,12 +66,15 @@ P3021LOG='''
 </tr>
 '''
 
-P4LOG='''
+PnXLOG='''
 <table border=1 cellpadding=3>
 <tr bgcolor="lightblue">
 <td rowspan=2>канал</td>
 <td rowspan=2>№ пакета</td>
 <td rowspan=2>адрес</td>
+<td rowspan=2>подблок</td>
+<td rowspan=2 colspan=24>Отсчеты АЦП</td>
+<td rowspan=2>Источник</td>
 </tr>
 <tr bgcolor="lightcyan">
 </tr>

@@ -66,11 +66,19 @@ print >>P2LOG,HTMLHEAD.P2LOG
 
 P3021LOG = HTML('%s/P3021.html'%DATDIR,'Пакет 3(0,21): %s'%DATDIR)
 P3021LOG.SubTitle='Пакеты тип 3(0,21)'
-print >>P3021LOG,HTMLHEAD.P3021LOG
+print >>P3021LOG,HTMLHEAD.Pn021LOG
 
-P4LOG = HTML('%s/P4.html'%DATDIR,'Пакет 4: %s'%DATDIR)
-P4LOG.SubTitle='Пакеты тип 4'
-print >>P4LOG,HTMLHEAD.P4LOG
+P3XLOG = HTML('%s/P3x.html'%DATDIR,'Пакет 3(x): %s'%DATDIR)
+P3XLOG.SubTitle='Пакеты тип 3(x)'
+print >>P3XLOG,HTMLHEAD.PnXLOG
+
+P4021LOG = HTML('%s/P4021.html'%DATDIR,'Пакет 4(0,21): %s'%DATDIR)
+P4021LOG.SubTitle='Пакеты тип 4(0,21)'
+print >>P4021LOG,HTMLHEAD.Pn021LOG
+
+P4XLOG = HTML('%s/P4x.html'%DATDIR,'Пакет 4(x): %s'%DATDIR)
+P4XLOG.SubTitle='Пакеты тип 4(x)'
+print >>P4XLOG,HTMLHEAD.PnXLOG
 
 ######################################################
 
@@ -333,18 +341,13 @@ class Package1(Package):
         self.htmlreport()
     def htmlreport(self):
         Package.htmlreport(self)
-        self.HTMLOG['td'] = self.time
-        self.HTMLOG['td'] = self.BSKVU1
-        self.HTMLOG['td'] = self.BSKVU1
-        self.HTMLOG['td'] = self.DM1peak.X
-        self.HTMLOG['td'] = self.DM1peak.Y
-        self.HTMLOG['td'] = self.DM1peak.Z
-        self.HTMLOG['td'] = self.DM2peak.X
-        self.HTMLOG['td'] = self.DM2peak.Y
-        self.HTMLOG['td'] = self.DM2peak.Z
-        self.HTMLOG['td'] = self.Temp.DM1
-        self.HTMLOG['td'] = self.Temp.DM2
-        self.HTMLOG['td'] = self.Temp.SHT
+        for i in [
+            self.time,
+            self.BSKVU1, self.BSKVU1,
+            self.DM1peak.X, self.DM1peak.Y, self.DM1peak.Z,
+            self.DM2peak.X, self.DM2peak.Y, self.DM2peak.Z,
+            self.Temp.DM1, self.Temp.DM2, self.Temp.SHT
+        ]: self.HTMLOG['td'] = i
         print >> self.HTMLOG, '</tr>'
     def __str__(self):
         # вызов дампера суперкласса
@@ -358,12 +361,33 @@ class Package1(Package):
         T += '-' * 40 + '\n'
         return T
 
-class Package3021(Package):
-    'пакет тип кадр3'
+class Package3x(Package):
+    'пакет тип кадр3x'
     def __init__(self, CH, ADDR, DAT, HTMLOG):
         # вызов конструктора суперкласса
         Package.__init__(self, CH, ADDR, DAT, HTMLOG)
-        # декодирование полей специфичных для кадра2
+        # декодирование полей специфичных для кадра3x
+        self.SubBlock = self.DAT[4]
+        self.ADC = self.DAT[5:28 + 1]
+        self.SRC = self.DAT[29]
+        # html
+        self.htmlreport()
+    def htmlreport(self):
+        Package.htmlreport(self)
+        self.HTMLOG['td'] = self.SubBlock
+        for i in self.ADC: self.HTMLOG['td'] = i
+        self.HTMLOG['td'] = self.SRC
+        print >> self.HTMLOG, '</tr>'
+
+class Package4x(Package3x):
+    'пакет тип кадр4x'
+
+class Package3021(Package):
+    'пакет тип кадр3(0,21)'
+    def __init__(self, CH, ADDR, DAT, HTMLOG):
+        # вызов конструктора суперкласса
+        Package.__init__(self, CH, ADDR, DAT, HTMLOG)
+        # декодирование полей специфичных для кадра3
         self.time = ShtyrTime(self.DAT[5:8 + 1])
         self.BSKVU1 = BSKVU(self.DAT[9:12 + 1])
         self.SubBlock = self.DAT[4]
@@ -380,16 +404,8 @@ class Package3021(Package):
         self.HTMLOG['td'] = self.SRC
         print >>self.HTMLOG,'</tr>'
 
-class Package4(Package):
-    'пакет тип кадр4'
-    def __init__(self, CH, ADDR, DAT, HTMLOG):
-        # вызов конструктора суперкласса
-        Package.__init__(self, CH, ADDR, DAT, HTMLOG)
-        # декодирование полей специфичных для кадра2
-        self.htmlreport()
-    def htmlreport(self):
-        Package.htmlreport(self)
-        print >>self.HTMLOG,'</tr>'
+class Package4021(Package3021):
+    'пакет тип кадр4(0,21)'
 
 class Package2(Package):
     'пакет тип кадр2'
@@ -452,10 +468,16 @@ class Channel:
             elif T[0] == 1: 
                 P = Package2(self.ID, a, T, P2LOG)
             elif T[0] == 0xFF:
-                if T[3] == 200 and T[4] in (0,21):
-                    P = Package3021(self.ID, a, T, P3021LOG)
+                if T[3] == 200:
+                    if T[4] in (0,21):
+                        P = Package3021(self.ID, a, T, P3021LOG)
+                    else:
+                        P = Package3x(self.ID, a, T, P3XLOG)
                 elif T[3] == 201:
-                    P = Package4(self.ID, a, T, P4LOG)
+                    if T[4] in (0,21):
+                        P = Package4021(self.ID, a, T, P4021LOG)
+                    else:
+                        P = Package4x(self.ID, a, T, P4XLOG)
                 else:
                     P = Package(self.ID, a, T, None)
             else: P = Package(self.ID, a, T, None)
@@ -490,7 +512,5 @@ print
 K1 = Channel('K1', BitMap['K1']) ; print K1 ; K1LOG.SubTitle = K1 ; print >> K1LOG, K1.html()
 K2 = Channel('K2', BitMap['K2']) ; print K2 ; K2LOG.SubTitle = K1 ; print >> K2LOG, K2.html()
 K3 = Channel('K3', BitMap['K3']) ; print K3 ; K3LOG.SubTitle = K1 ; print >> K3LOG, K3.html()
-
-print >>P1LOG,'</table>'
 
 print '.'
