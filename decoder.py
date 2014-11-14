@@ -31,6 +31,14 @@ BitMap={
 'K3':[(2,12),(2,11),(2,10),(2,9 ),(2,8 ),(2,7 ),(2,6 ),(2,5 )]
 }
 
+# признаки валидности пакетов Package.OK
+class Valid: 
+    color="white"
+    def __str__(self): return self.__class__.__name__
+class Good(Valid): color="lightgreen"
+class Brokken(Valid): color="red"
+class Repared(Valid): color="yellow"
+
 import HTMLHEAD
 class HTML:
     def __init__(self, FileName, Title):
@@ -104,9 +112,6 @@ def dump(dat):
     T+='\n'
     return T
 
-def bgcolor(F):
-    return {True:"lightgreen", False:"yellow"}[F]
-
 ############################
 # класс статистики
 ############################
@@ -114,51 +119,6 @@ def bgcolor(F):
 class Statistics:
     'статистика по битым пакетам'
 STAT=Statistics()
-
-#     def __init__(self): self.dat={}
-#     def __getitem__(self,item):
-#         try:
-#             T = self.dat[item]
-#         except KeyError:
-#             T = 0 
-#         return T
-#     def __setitem__(self,item,value):
-#         self.dat[item]=value
-#     def __str__(self):
-#         T='<table border=1 cellpadding=3>\n'
-#         T+='<tr bgcolor=lightcyan>'
-#         T+='<td>тип</td>'
-#         T+='<td>всего</td>'
-#         T+='<td colspan=2>битых</td>'
-#         T+='<td>распознавание</td>'
-#         T+='</tr>\n'
-#         X={}
-#         for i in self.dat:
-#             X[i[0]]=0
-#         del X['c']
-#         T+=self.htline('c')
-#         for i in sorted(X): T+=self.htline(i)
-#         T+='</table>\n'
-#         return T
-#     def htline(self,i):
-#         if i=='c':
-#             x='всего'
-#             T='<tr bgcolor="#FFFFAA">'
-#         else:
-#             x=i
-#             if x==256: x=3
-#             T='<tr>'
-#         obs=self.dat[i,'obs']
-#         bit=self.dat[i,'bit']
-#         proc=100*float(bit)/obs
-#         T+='<td><a href="kadr%s.html">%s</a></td>'%(x,x)
-#         T+='<td>%s</td>'%obs
-#         T+='<td>%s</td><td>%.1f%%</td><td>%.1f%%</td>'%(bit,proc,100-proc/2)
-#         T+='</tr>\n'
-#         if proc>95:
-#             return ''
-#         else:
-#             return T
 
 ############################
 # классы низкоуровневых данных
@@ -290,10 +250,7 @@ class Package:
     'пакет общий код'
     len = 0x20
     def __init__(self, CH, ADDR, DAT, HTMLOG):
-        self.CH = CH
-        self.ADDR = ADDR
-        self.DAT = DAT
-        self.HTMLOG = HTMLOG
+        self.CH = CH ; self.ADDR = ADDR ; self.DAT = DAT ; self.HTMLOG = HTMLOG
         # декодирование с выделением срезов из списка байт
         self.SIGN = Signatura(self.DAT[0:3])
         self.N = self.DAT[3]
@@ -305,7 +262,35 @@ class Package:
         self.CRC_H = self.DAT[30]
         self.CRC_L = self.DAT[31]
         self.XBYTE = self.DAT[Package.len:Package.len+Signatura.len]
-        self.OK = self.isValid()
+        # валидизация
+        if self.isValid():
+            self.OK = Good()
+        else:
+            self.OK = Brokken() 
+            self.Repair()
+    def delbyte(self,j): return self.DAT[:j]+self.DAT[j+1:-2]+self.DAT[-2:]+[0]
+    def Repair(self):
+        'кондиционер битых пакетов'
+        # починка опухших пакетов
+        if self.DAT[-1]==0x55:
+            # строим индекс двойных байтов
+            DD=[]
+            for i in range(Package.len):
+                if self.DAT[i]==0x00 and self.DAT[i]==self.DAT[i+1]: DD.append(i)
+            # цикл поиска валидных пакетов удалением байта
+            for j in DD:
+                # создаем урезанную копию пакета
+                XX = self.delbyte(j)
+                # проверяем на починку контрольной суммы
+                X_CRC_H = XX[30] ; X_CRC_L = XX[31]
+                XCS=sum(XX[:Package.len-2])
+                if XCS == (X_CRC_H << 8) | X_CRC_L:
+                    # рвем цикл по индексам, починяя основной пакет
+                    self.DAT=XX
+                    self.CRC_H=X_CRC_H ; self.CRC_L=X_CRC_L
+                    self.OK=Repared()
+                    break
+                 
     def __str__(self):
         T = '\n<a name="%s">Пакет %s@%s\n' % (self.ADDR, self.ADDR, self.CH)
         T += '-' * 40 + dump(self.DAT) + '-' * 40 + '\n'
@@ -320,20 +305,20 @@ class Package:
         return T
     def htmlreport(self):
         # htmlog
-        print >> self.HTMLOG, '<tr bgcolor="%s">' % bgcolor(self.OK)
+        print >> self.HTMLOG, '<tr bgcolor="%s">' % self.OK.color
         self.HTMLOG['td'] = self.CH
         self.HTMLOG['td'] = self.N
         print >> self.HTMLOG, \
             '<td><a href="%s.html#%s">#%s</a></td>' % (\
                 self.CH, self.ADDR, self.ADDR)
     def html(self):
-        T = '<tr bgcolor="%s">' % bgcolor(self.OK)
+        T = '<tr bgcolor="%s">' % self.OK.color
         T += '<td><a href="#%s">#%s</a></td>' % (self.ADDR, self.ADDR)
         T += reduce(lambda a, b:a + b, map(lambda x:'<td>%s</td>' % x, self.DAT))
         T += '</tr>\n'
         return T
     def isValid(self): return self.CRC() == (self.CRC_H << 8) | self.CRC_L
-    def CRC(self): return sum(self.DAT[:32-2])
+    def CRC(self,): return sum(self.DAT[:32-2])
     
 class Package1(Package):
     'пакет тип кадр1'
@@ -361,7 +346,7 @@ class Package1(Package):
         ]: self.HTMLOG['td'] = i
         print >> self.HTMLOG, '</tr>'
         # R12
-        print >> R12, '<tr bgcolor="%s">' % bgcolor(self.OK)
+        print >> R12, '<tr bgcolor="%s">' % self.OK.color
         R12['td'] = self.CH
         R12['td'] = self.N
         R12['td'] = self.Type
@@ -459,7 +444,7 @@ class Package2(Package):
             P2LOG['td'] = i 
         print >>P2LOG,'</tr>'
         # R12
-        print >> R12, '<tr bgcolor="%s">' % bgcolor(self.OK)
+        print >> R12, '<tr bgcolor="%s">' % self.OK.color
         R12['td'] = self.CH
         R12['td'] = self.N
         R12['td'] = self.Type
